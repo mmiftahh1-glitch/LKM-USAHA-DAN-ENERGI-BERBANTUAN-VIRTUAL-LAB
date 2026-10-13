@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LKM Digital Interaktif: Usaha dan Energi - SMP Negeri 12 Semarang</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            DEFAULT: '#1e3a8a',
+                            dark: '#172554',
+                            light: '#3b82f6'
+                        },
+                        skyBg: '#f0f4f8',
+                        labGreen: '#10b981',
+                        orangeQ: '#f97316',
+                        answerWhite: '#ffffff'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; color: #1f2937; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .print-container { box-shadow: none !important; border: none !important; padding: 0 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [view, setView] = useState('identity'); // 'identity', 'home', 'materi1', 'materi2'
+            const [identity, setIdentity] = useState({
+                kelas: 'VIII-A',
+                kelompok: 'Kelompok 1',
+                tanggal: new Date().toISOString().split('T')[0],
+                anggota: ['', '', '', '', '']
+            });
+
+            // LocalStorage for Identity & Answers
+            const [materi1Data, setMateri1Data] = useState({
+                hipotesis: '',
+                ansExp1_1: '',
+                ansExp1_2: '',
+                kesimpulanExp1: ['', ''],
+                tugasATable: { 1: '', 2: '' },
+                tugasAPilihan: '',
+                tugasBTable: { 1: '', 2: '' },
+                tugasBPilihan: '',
+                analisis1: '',
+                analisis2: '',
+                kesimpulanHarian: ['', '', '']
+            });
+
+            const [materi2Data, setMateri2Data] = useState({
+                hipotesis: '',
+                ansExp1_atas: '',
+                ansExp1_bawah: '',
+                tabelExp1_atas: { v: '', ep: '', ek: '', em: '' },
+                tabelExp1_bawah: { v: '', ep: '', ek: '', em: '' },
+                analisisExp1_1: 'tinggi',
+                analisisExp1_2: 'cepat',
+                tabelExp2: {
+                    kiriAtas: { ep: '', ek: '', em: '' },
+                    tengahTurun: { ep: '', ek: '', em: '' },
+                    dasar: { ep: '', ek: '', em: '' },
+                    tengahNaik: { ep: '', ek: '', em: '' },
+                    kananAtas: { ep: '', ek: '', em: '' }
+                },
+                ansExp2_1: '',
+                ansExp2_2: '',
+                ansExp2_3: '',
+                kesimpulanExp2_1: '',
+                kesimpulanExp2_2: { berubah: '', dari: '', menjadi: '', selalu: '' },
+                analisisDika1: '',
+                analisisDika2: '',
+                kesimpulanAkhir: ['', '', '']
+            });
+
+            useEffect(() => {
+                const savedIdentity = localStorage.getItem('lkm_identity');
+                if (savedIdentity) setIdentity(JSON.parse(savedIdentity));
+
+                const savedM1 = localStorage.getItem('lkm_materi1');
+                if (savedM1) setMateri1Data(JSON.parse(savedM1));
+
+                const savedM2 = localStorage.getItem('lkm_materi2');
+                if (savedM2) setMateri2Data(JSON.parse(savedM2));
+            }, []);
+
+            const saveIdentity = (e) => {
+                e.preventDefault();
+                localStorage.setItem('lkm_identity', JSON.stringify(identity));
+                setView('home');
+            };
+
+            const saveM1ToStorage = () => {
+                localStorage.setItem('lkm_materi1', JSON.stringify(materi1Data));
+                alert('LKM Materi 1 (Usaha) berhasil disimpan!');
+            };
+
+            const saveM2ToStorage = () => {
+                localStorage.setItem('lkm_materi2', JSON.stringify(materi2Data));
+                alert('LKM Materi 2 (Energi) berhasil disimpan!');
+            };
+
+            const resetM1 = () => {
+                if (confirm('Yakin ingin mereset jawaban Materi 1?')) {
+                    localStorage.removeItem('lkm_materi1');
+                    setMateri1Data({
+                        hipotesis: '', ansExp1_1: '', ansExp1_2: '', kesimpulanExp1: ['', ''],
+                        tugasATable: { 1: '', 2: '' }, tugasAPilihan: '', tugasBTable: { 1: '', 2: '' },
+                        tugasBPilihan: '', analisis1: '', analisis2: '', kesimpulanHarian: ['', '', '']
+                    });
+                }
+            };
+
+            const resetM2 = () => {
+                if (confirm('Yakin ingin mereset jawaban Materi 2?')) {
+                    localStorage.removeItem('lkm_materi2');
+                    setMateri2Data({
+                        hipotesis: '', ansExp1_atas: '', ansExp1_bawah: '',
+                        tabelExp1_atas: { v: '', ep: '', ek: '', em: '' },
+                        tabelExp1_bawah: { v: '', ep: '', ek: '', em: '' },
+                        analisisExp1_1: 'tinggi', analisisExp1_2: 'cepat',
+                        tabelExp2: { kiriAtas: { ep: '', ek: '', em: '' }, tengahTurun: { ep: '', ek: '', em: '' }, dasar: { ep: '', ek: '', em: '' }, tengahNaik: { ep: '', ek: '', em: '' }, kananAtas: { ep: '', ek: '', em: '' } },
+                        ansExp2_1: '', ansExp2_2: '', ansExp2_3: '', kesimpulanExp2_1: '',
+                        kesimpulanExp2_2: { berubah: '', dari: '', menjadi: '', selalu: '' },
+                        analisisDika1: '', analisisDika2: '', kesimpulanAkhir: ['', '', '']
+                    });
+                }
+            };
+
+            // Calculate progress for Materi 1
+            const calculateM1Progress = () => {
+                let filled = 0;
+                let total = 9;
+                if (materi1Data.hipotesis) filled++;
+                if (materi1Data.ansExp1_1) filled++;
+                if (materi1Data.ansExp1_2) filled++;
+                if (materi1Data.kesimpulanExp1[0] && materi1Data.kesimpulanExp1[1]) filled++;
+                if (materi1Data.tugasAPilihan) filled++;
+                if (materi1Data.tugasBPilihan) filled++;
+                if (materi1Data.analisis1) filled++;
+                if (materi1Data.analisis2) filled++;
+                if (materi1Data.kesimpulanHarian[0] && materi1Data.kesimpulanHarian[1] && materi1Data.kesimpulanHarian[2]) filled++;
+                return Math.round((filled / total) * 100);
+            };
+
+            // Calculate progress for Materi 2 starting strictly at 0%
+            const calculateM2Progress = () => {
+                let filled = 0;
+                let total = 8;
+                if (materi2Data.hipotesis) filled++;
+                if (materi2Data.ansExp1_atas) filled++;
+                if (materi2Data.ansExp1_bawah) filled++;
+                if (materi2Data.ansExp2_1) filled++;
+                if (materi2Data.ansExp2_2) filled++;
+                if (materi2Data.ansExp2_3) filled++;
+                if (materi2Data.analisisDika1) filled++;
+                if (materi2Data.analisisDika2) filled++;
+                return Math.round((filled / total) * 100);
+            };
+
+            const downloadPDF = (type) => {
+                window.print();
+            };
+
+            return (
+                <div className="min-h-screen bg-skyBg flex flex-col">
+                    {/* Header */}
+                    <header className="bg-navy text-white shadow-md no-print">
+                        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+                            <div className="flex items-center space-x-3 mb-2 md:mb-0">
+                                <div className="bg-white p-2 rounded-xl text-navy font-bold shadow">
+                                    <i data-lucide="atom" className="w-8 h-8 text-navy"></i>
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold">LKM DIGITAL INTERAKTIF IPA</h1>
+                                    <p className="text-xs text-blue-200">SMP Negeri 12 Semarang | Model Problem Based Learning (PBL)</p>
+                                </div>
+                            </div>
+                            {view !== 'identity' && (
+                                <div className="flex items-center space-x-2">
+                                    <button onClick={() => setView('home')} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium transition">
+                                        Beranda / Pilih Materi
+                                    </button>
+                                    <button onClick={() => setView('identity')} className="bg-slate-700 hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1">
+                                        <i data-lucide="user-pen" className="w-4 h-4"></i> Edit Identitas
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    {/* Main Content Body */}
+                    <main className="flex-grow max-w-6xl w-full mx-auto px-4 py-6">
+                        {view === 'identity' && (
+                            <IdentityForm identity={identity} setIdentity={setIdentity} onSubmit={saveIdentity} />
+                        )}
+                        {view === 'home' && (
+                            <HomeView identity={identity} setView={setView} m1Progress={calculateM1Progress()} m2Progress={calculateM2Progress()} />
+                        )}
+                        {view === 'materi1' && (
+                            <Materi1 
+                                identity={identity} 
+                                data={materi1Data} 
+                                setData={setMateri1Data} 
+                                onSave={saveM1ToStorage} 
+                                onReset={resetM1} 
+                                onDownload={() => downloadPDF('materi1')}
+                                onBack={() => setView('home')}
+                            />
+                        )}
+                        {view === 'materi2' && (
+                            <Materi2 
+                                identity={identity} 
+                                data={materi2Data} 
+                                setData={setMateri2Data} 
+                                onSave={saveM2ToStorage} 
+                                onReset={resetM2} 
+                                onDownload={() => downloadPDF('materi2')}
+                                onBack={() => setView('home')}
+                            />
+                        )}
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="bg-navy-dark text-white text-center py-4 text-xs no-print mt-auto">
+                        <p>LEMBAR KERJA MURID (LKM) DIGITAL INTERAKTIF BERBASIS VIRTUAL LAB &bull; IPA KELAS VIII SMP</p>
+                        <p className="text-blue-300 mt-1">SMP Negeri 12 Semarang &copy; 2026</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 1. IDENTITAS KELOMPOK COMPONENT
+        // ==========================================
+        function IdentityForm({ identity, setIdentity, onSubmit }) {
+            const handleMemberChange = (index, val) => {
+                const newAnggota = [...identity.anggota];
+                newAnggota[index] = val;
+                setIdentity({ ...identity, anggota: newAnggota });
+            };
+
+            return (
+                <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-blue-100">
+                    <div className="bg-navy text-white p-6 text-center">
+                        <h2 className="text-2xl font-bold tracking-wide">LEMBAR KERJA MURID (LKM)</h2>
+                        <h3 className="text-lg font-semibold text-blue-200 mt-1">USAHA DAN ENERGI</h3>
+                        <p className="text-xs text-blue-300 mt-2">Mata Pelajaran: IPA | Kelas/Semester: VIII / Ganjil | Sekolah: SMP Negeri 12 Semarang</p>
+                    </div>
+                    <form onSubmit={onSubmit} className="p-6 space-y-5">
+                        <div className="bg-blue-50 border-l-4 border-blue-600 p-4 text-sm text-blue-900 rounded-r-lg">
+                            Silakan isi identitas kelompok Anda dengan lengkap sebelum memulai penyelidikan menggunakan virtual lab.
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Nama Sekolah</label>
+                                <input type="text" disabled value="SMP Negeri 12 Semarang" className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Mata Pelajaran</label>
+                                <input type="text" disabled value="Ilmu Pengetahuan Alam (IPA)" className="w-full bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Kelas</label>
+                                <input type="text" required value={identity.kelas} onChange={e => setIdentity({...identity, kelas: e.target.value})} placeholder="Contoh: VIII-A" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Nomor / Nama Kelompok</label>
+                                <input type="text" required value={identity.kelompok} onChange={e => setIdentity({...identity, kelompok: e.target.value})} placeholder="Contoh: Kelompok 1" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Hari / Tanggal</label>
+                                <input type="date" required value={identity.tanggal} onChange={e => setIdentity({...identity, tanggal: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase text-gray-600 mb-2">Nama Anggota Kelompok (4-5 Murid)</label>
+                            <div className="space-y-2">
+                                {identity.anggota.map((member, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <span className="w-6 text-sm font-bold text-gray-500 text-right">{idx + 1}.</span>
+                                        <input 
+                                            type="text" 
+                                            required={idx < 2} 
+                                            value={member} 
+                                            onChange={e => handleMemberChange(idx, e.target.value)} 
+                                            placeholder={`Nama Anggota ${idx + 1} ${idx < 2 ? '(Wajib)' : '(Opsional)'}`} 
+                                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <button type="submit" className="w-full bg-navy hover:bg-navy-dark text-white font-semibold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 mt-4">
+                            <span>Simpan Identitas dan Mulai LKM</span>
+                            <i data-lucide="arrow-right" className="w-5 h-5"></i>
+                        </button>
+                    </form>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 2. HOME VIEW (MATERI SELECTION)
+        // ==========================================
+        function HomeView({ identity, setView, m1Progress, m2Progress }) {
+            return (
+                <div className="space-y-6">
+                    {/* Identity Banner */}
+                    <div className="bg-white rounded-2xl shadow p-6 border-l-8 border-navy flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <span className="text-xs uppercase bg-blue-100 text-blue-800 font-bold px-2.5 py-1 rounded-full">Kelompok Aktif</span>
+                            <h2 className="text-xl font-bold text-navy mt-2">{identity.kelompok} - Kelas {identity.kelas}</h2>
+                            <p className="text-sm text-gray-600 mt-1">Anggota: {identity.anggota.filter(Boolean).join(', ') || 'Belum diisi'}</p>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-xs text-gray-500 block">Tanggal Pengerjaan</span>
+                            <span className="font-semibold text-gray-800">{identity.tanggal}</span>
+                        </div>
+                    </div>
+
+                    <h2 className="text-xl font-bold text-navy text-center mb-2">PILIHAN MATERI PEMBELAJARAN IPA</h2>
+
+                    {/* Cards Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Materi 1 Card */}
+                        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 flex flex-col justify-between transition hover:shadow-xl">
+                            <div>
+                                <div className="h-40 bg-blue-900 rounded-xl mb-4 flex items-center justify-center text-white relative overflow-hidden">
+                                    <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                                    <div className="text-center z-10 px-4">
+                                        <i data-lucide="box" className="w-12 h-12 mx-auto mb-2 text-blue-300"></i>
+                                        <h3 className="font-bold text-lg">MATERI 1: USAHA</h3>
+                                        <p className="text-xs text-blue-200 mt-1">Simulasi Lemari Arsip & Bidang Miring</p>
+                                    </div>
+                                </div>
+                                <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-semibold mb-2">Progres: {m1Progress}% Selesai</span>
+                                <p className="text-gray-600 text-sm mb-4">
+                                    "Menyelidiki kapan gaya menghasilkan usaha serta hubungan antara gaya, perpindahan, dan besarnya usaha."
+                                </p>
+                            </div>
+                            <button onClick={() => setView('materi1')} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+                                <span>Buka LKM Usaha</span>
+                                <i data-lucide="chevron-right" className="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        {/* Materi 2 Card */}
+                        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 flex flex-col justify-between transition hover:shadow-xl">
+                            <div>
+                                <div className="h-40 bg-emerald-800 rounded-xl mb-4 flex items-center justify-center text-white relative overflow-hidden">
+                                    <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                                    <div className="text-center z-10 px-4">
+                                        <i data-lucide="activity" className="w-12 h-12 mx-auto mb-2 text-emerald-300"></i>
+                                        <h3 className="font-bold text-lg">MATERI 2: ENERGI</h3>
+                                        <p className="text-xs text-emerald-200 mt-1">Simulasi Skater & Hukum Kekekalan Energi</p>
+                                    </div>
+                                </div>
+                                <span className="inline-block bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-semibold mb-2">Progres: {m2Progress}% Selesai</span>
+                                <p className="text-gray-600 text-sm mb-4">
+                                    "Menyelidiki perubahan energi potensial dan energi kinetik serta hukum kekekalan energi mekanik."
+                                </p>
+                            </div>
+                            <button onClick={() => setView('materi2')} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+                                <span>Buka LKM Energi</span>
+                                <i data-lucide="chevron-right" className="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 3. VIRTUAL LAB USAHA (MATERI 1)
+        // ==========================================
+        function LabUsaha({ force, setForce, position, setPosition, isRunning, setIsRunning, surfaceType, setSurfaceType }) {
+            const canvasRef = useRef(null);
+            
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                let groundColor = '#94a3b8';
+                if (surfaceType === 'kasar') groundColor = '#b45309';
+                if (surfaceType === 'sedang') groundColor = '#64748b';
+                if (surfaceType === 'licin') groundColor = '#38bdf8';
+
+                ctx.fillStyle = groundColor;
+                ctx.fillRect(0, 240, canvas.width, 60);
+
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 10; i++) {
+                    let x = 50 + i * 65;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 240);
+                    ctx.lineTo(x, 250);
+                    ctx.stroke();
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '10px Inter';
+                    ctx.fillText(`${i}m`, x - 6, 265);
+                }
+
+                let objX = 50 + (position / 10) * 650;
+                let objY = 170;
+
+                ctx.fillStyle = '#1e3a8a';
+                ctx.fillRect(objX, objY, 50, 70);
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(objX, objY, 50, 70);
+                
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillRect(objX + 10, objY + 20, 30, 4);
+                ctx.fillRect(objX + 10, objY + 45, 30, 4);
+
+                if (force > 0) {
+                    ctx.fillStyle = '#f97316';
+                    ctx.beginPath();
+                    ctx.arc(objX - 15, objY + 25, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillRect(objX - 20, objY + 35, 12, 25);
+                    
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(objX - 25, objY + 45);
+                    ctx.lineTo(objX - 5, objY + 45);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.moveTo(objX - 5, objY + 42);
+                    ctx.lineTo(objX + 2, objY + 45);
+                    ctx.lineTo(objX - 5, objY + 48);
+                    ctx.fill();
+                }
+
+                if (surfaceType === 'kasar' && force > 0 && force <= 350) {
+                    ctx.fillStyle = '#b91c1c';
+                    ctx.font = '11px Inter';
+                    ctx.fillText('Gaya Gesek Statis Menahan (Maks 350N)', objX - 40, objY - 10);
+                }
+
+            }, [force, position, surfaceType]);
+
+            return (
+                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <h4 className="font-bold text-navy text-sm mb-2 flex items-center gap-2">
+                        <i data-lucide="play-circle" className="w-4 h-4 text-emerald-600"></i>
+                        Virtual Lab Usaha (Lemari Arsip)
+                    </h4>
+                    <canvas ref={canvasRef} width="750" height="300" className="w-full h-auto bg-slate-50 border border-slate-200 rounded-lg mb-3"></canvas>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-xs">
+                        <div className="bg-blue-50 p-2 rounded-lg">
+                            <span className="text-gray-500 block">Posisi</span>
+                            <span className="font-bold text-navy text-sm">{position.toFixed(1)} m</span>
+                        </div>
+                        <div className="bg-blue-50 p-2 rounded-lg">
+                            <span className="text-gray-500 block">Gaya Dorong (F)</span>
+                            <span className="font-bold text-navy text-sm">{force} N</span>
+                        </div>
+                        <div className="bg-blue-50 p-2 rounded-lg">
+                            <span className="text-gray-500 block">Usaha (W = F &times; &Delta;s)</span>
+                            <span className="font-bold text-emerald-600 text-sm">{(force * position).toFixed(1)} J</span>
+                        </div>
+                        <div className="bg-blue-50 p-2 rounded-lg">
+                            <span className="text-gray-500 block">Permukaan</span>
+                            <span className="font-bold text-navy capitalize text-sm">{surfaceType}</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 4. VIRTUAL LAB ENERGI (MATERI 2 - FIXED)
+        // ==========================================
+        function LabEnergi({ mass, skaterX, setSkaterX, isRunning, showBars, showGrid, showSpeed }) {
+            const canvasRef = useRef(null);
+            const isDraggingRef = useRef(false);
+
+            // Fungsi helper untuk menghitung ketinggian h (meter) dari posisi X (0 sampai 50 meter)
+            const getValidHeight = (x) => {
+                let normX = (x - 25) / 25; // -1 sampai 1
+                if (normX < -1) normX = -1;
+                if (normX > 1) normX = 1;
+                return 5 * (normX * normX); // Ketinggian maksimum 5 meter di ujung
+            };
+
+            const getCanvasCoords = (x) => {
+                let px = 50 + (x / 50) * 650;
+                let h = getValidHeight(x);
+                let py = 300 - (h / 6) * 250 - 15;
+                return { px, py, h };
+            };
+
+            // Event handler Drag and Drop yang aman dan responsif
+            const handleMouseDown = () => { isDraggingRef.current = true; };
+            const handleMouseUp = () => { isDraggingRef.current = false; };
+            
+            const handleMouseMove = (e) => {
+                if (!isDraggingRef.current) return;
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let mouseX = clientX - rect.left;
+                
+                // Konversi posisi pixel kanvas ke meter (0 - 50m)
+                let xVal = ((mouseX - 50) / 650) * 50;
+                if (xVal < 0) xVal = 0;
+                if (xVal > 50) xVal = 50;
+                setSkaterX(xVal);
+            };
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Background
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Grid lines if enabled
+                if (showGrid) {
+                    ctx.strokeStyle = '#e2e8f0';
+                    ctx.lineWidth = 1;
+                    for (let gx = 0; gx < canvas.width; gx += 50) {
+                        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
+                    }
+                    for (let gy = 0; gy < canvas.height; gy += 50) {
+                        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvas.width, gy); ctx.stroke();
+                    }
+                }
+
+                // Draw U-Track (Halfpipe)
+                ctx.strokeStyle = '#1e3a8a';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                for (let px = 50; px <= 700; px += 2) {
+                    let normX = (px - 375) / 325;
+                    let h = 5 * (normX * normX);
+                    let py = 300 - (h / 6) * 250;
+                    if (px === 50) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                // Height indicator labels
+                ctx.fillStyle = '#64748b';
+                ctx.font = '11px Inter';
+                ctx.fillText('5m (Ujung)', 35, 60);
+                ctx.fillText('0m (Dasar)', 365, 320);
+
+                // Get current Skater positions
+                const { px: skPx, py: skPy, h } = getCanvasCoords(skaterX);
+
+                // Draw Skater
+                ctx.fillStyle = '#f97316';
+                ctx.beginPath();
+                ctx.arc(skPx, skPy, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#c2410c';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Speed indicator vector
+                let v = Math.sqrt(Math.max(0, 2 * 10 * (5 - h)));
+                if (showSpeed) {
+                    ctx.fillStyle = '#10b981';
+                    ctx.font = '12px Inter';
+                    ctx.fillText(`v = ${v.toFixed(1)} m/s`, skPx + 20, skPy);
+                }
+
+                // Energy Bar Charts overlay
+                if (showBars) {
+                    let g = 10;
+                    let ep = mass * g * h;
+                    let em = mass * g * 5; // Total mechanical energy = m * g * 5
+                    let ek = Math.max(0, em - ep);
+
+                    let barX = 550;
+                    let barY = 40;
+                    let maxE = mass * 10 * 5;
+                    if (maxE === 0) maxE = 2500;
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                    ctx.fillRect(barX - 10, barY - 10, 180, 130);
+                    ctx.strokeStyle = '#cbd5e1';
+                    ctx.strokeRect(barX - 10, barY - 10, 180, 130);
+
+                    // Ep Bar (Blue)
+                    let epHeight = (ep / maxE) * 90;
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.fillRect(barX, barY + 90 - epHeight, 35, epHeight);
+                    ctx.fillStyle = '#1e3a8a';
+                    ctx.font = '10px Inter';
+                    ctx.fillText('Ep', barX + 10, barY + 105);
+
+                    // Ek Bar (Green)
+                    let ekHeight = (ek / maxE) * 90;
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillRect(barX + 50, barY + 90 - ekHeight, 35, ekHeight);
+                    ctx.fillStyle = '#065f46';
+                    ctx.fillText('Ek', barX + 60, barY + 105);
+
+                    // Em Bar (Yellow/Orange)
+                    let emHeight = (em / maxE) * 90;
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(barX + 100, barY + 90 - emHeight, 35, emHeight);
+                    ctx.fillStyle = '#b45309';
+                    ctx.fillText('Em', barX + 110, barY + 105);
+                }
+
+            }, [skaterX, mass, showBars, showGrid, showSpeed]);
+
+            return (
+                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <h4 className="font-bold text-navy text-sm mb-2 flex items-center gap-2">
+                        <i data-lucide="play-circle" className="w-4 h-4 text-emerald-600"></i>
+                        Virtual Lab Energi (Skater di Lintasan U)
+                    </h4>
+                    <p className="text-xs text-gray-500 mb-2">Petunjuk: Klik dan geser (drag & drop) skater di dalam lintasan untuk memindahkannya ke posisi berbeda.</p>
+                    <canvas 
+                        ref={canvasRef} 
+                        width="750" 
+                        height="320" 
+                        className="w-full h-auto bg-slate-50 border border-slate-200 rounded-lg mb-3 cursor-pointer select-none"
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                        onTouchStart={handleMouseDown}
+                        onTouchMove={handleMouseMove}
+                        onTouchEnd={handleMouseUp}
+                    ></canvas>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 5. MATERI 1 COMPONENT (USAHA)
+        // ==========================================
+        function Materi1({ identity, data, setData, onSave, onReset, onDownload, onBack }) {
+            const [force, setForce] = useState(100);
+            const [position, setPosition] = useState(0);
+            const [surface, setSurface] = useState('kasar');
+            const [isRunning, setIsRunning] = useState(false);
+
+            useEffect(() => {
+                let timer;
+                if (isRunning) {
+                    timer = setInterval(() => {
+                        setPosition(prev => {
+                            let effectiveForce = force;
+                            if (surface === 'kasar' && force <= 350) effectiveForce = 0;
+                            else if (surface === 'kasar') effectiveForce = force - 250;
+                            
+                            let nextPos = prev + (effectiveForce > 0 ? 0.2 : 0);
+                            if (nextPos >= 10) {
+                                setIsRunning(false);
+                                return 10;
+                            }
+                            return nextPos;
+                        });
+                    }, 50);
+                }
+                return () => clearInterval(timer);
+            }, [isRunning, force, surface]);
+
+            const runSimTaskA = (fVal, targetS) => {
+                setForce(fVal);
+                setSurface('licin');
+                setPosition(0);
+                setIsRunning(true);
+            };
+
+            return (
+                <div className="space-y-6 bg-white p-6 md:p-10 rounded-2xl shadow-xl print-container">
+                    <div className="flex justify-between items-center border-b pb-4 no-print">
+                        <button onClick={onBack} className="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1">
+                            <i data-lucide="arrow-left" className="w-4 h-4"></i> Kembali ke Beranda
+                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={onSave} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1">
+                                <i data-lucide="save" className="w-4 h-4"></i> Simpan LKM
+                            </button>
+                            <button onClick={onReset} className="bg-red-500 hover:bg-red-600 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1">
+                                <i data-lucide="rotate-ccw" className="w-4 h-4"></i> Reset
+                            </button>
+                            <button onClick={onDownload} className="bg-navy hover:bg-navy-dark text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1">
+                                <i data-lucide="printer" className="w-4 h-4"></i> Unduh / Cetak PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="text-center">
+                        <span className="text-xs font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-full uppercase">LKM Digital Interaktif &bull; PBL</span>
+                        <h2 className="text-2xl font-bold text-navy mt-2">LEMBAR KERJA MURID (LKM)</h2>
+                        <h3 className="text-xl font-bold text-blue-700">MATERI 1: KONSEP USAHA</h3>
+                        <p className="text-xs text-gray-500 mt-1">Kelompok: {identity.kelompok} | Kelas: {identity.kelas} | Tanggal: {identity.tanggal}</p>
+                    </div>
+
+                    {/* A. TUJUAN PEMBELAJARAN */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                        <h4 className="font-bold text-navy text-sm uppercase mb-2 flex items-center gap-2">
+                            <i data-lucide="target" className="w-4 h-4 text-blue-600"></i> A. Tujuan Pembelajaran
+                        </h4>
+                        <ol className="list-decimal list-inside text-sm text-gray-700 space-y-1">
+                            <li>Menjelaskan konsep usaha dalam fisika berdasarkan hasil pengamatan pada simulasi virtual.</li>
+                            <li>Menganalisis hubungan antara gaya, perpindahan, dan besarnya usaha.</li>
+                            <li>Memecahkan permasalahan usaha dalam kehidupan sehari-hari berdasarkan hasil penyelidikan.</li>
+                        </ol>
+                    </div>
+
+                    {/* B. PETUNJUK */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                        <h4 className="font-bold text-navy text-sm uppercase mb-2 flex items-center gap-2">
+                            <i data-lucide="info" className="w-4 h-4 text-slate-600"></i> B. Petunjuk Penggunaan LKM
+                        </h4>
+                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                            <li>Kerjakan LKM bersama kelompok yang terdiri atas 4–5 murid.</li>
+                            <li>Gunakan virtual lab yang tersedia untuk melakukan eksperimen secara interaktif.</li>
+                            <li>Catat hasil pengamatan pada tabel dan tuliskan jawaban pada kolom yang disediakan.</li>
+                        </ul>
+                    </div>
+
+                    {/* TAHAP 1: ORIENTASI */}
+                    <div className="space-y-4">
+                        <div className="bg-navy text-white px-4 py-2 rounded-lg font-bold text-sm">
+                            TAHAP 1: ORIENTASI MURID PADA MASALAH
+                        </div>
+                        <h4 className="font-bold text-base text-navy">Masalah: Memindahkan Lemari Es ke Atas Truk</h4>
+                        
+                        <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 text-sm text-gray-700 space-y-3 leading-relaxed">
+                            <p>
+                                Perhatikan permasalahan berikut dalam kehidupan sehari-hari: Budi dan Andi mendapatkan tugas untuk memindahkan sebuah lemari es ke atas bagian belakang truk. 
+                            </p>
+                            <p>
+                                Budi mencoba mendorong lemari es tersebut secara langsung di atas lantai tanah dengan sekuat tenaga. Meskipun Budi sudah mendorongnya sekuat tenaga hingga kelelahan dan berkeringat, lemari es tersebut sama sekali tidak bergeming atau berpindah tempat.
+                            </p>
+                            <p>
+                                Di sisi lain, Andi menggunakan papan kayu panjang yang dipasang miring sebagai bidang miring untuk menaikkan lemari es ke atas truk. Dengan mendorong melalui bidang miring tersebut secara perlahan namun pasti, lemari es akhirnya berhasil naik dan masuk ke dalam truk dengan lebih mudah.
+                            </p>
+                        </div>
+
+                        <div className="bg-amber-50 border-l-4 border-orangeQ p-4 text-sm text-amber-900 rounded-r-lg">
+                            <p className="font-semibold mb-1">Pertanyaan Pemantik:</p>
+                            "Menurut pemahaman kalian sehari-hari, siapakah yang melakukan usaha paling besar? Budi yang mendorong sekuat tenaga tetapi gagal, atau Andi yang berhasil memindahkan lemari es? Apakah usaha dalam fisika sama dengan kerja keras dalam kehidupan sehari-hari?"
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">Hipotesis Awal Kelompok:</label>
+                            <textarea 
+                                rows="3" 
+                                value={data.hipotesis} 
+                                onChange={e => setData({...data, hipotesis: e.target.value})}
+                                placeholder="Tuliskan dugaan atau hipotesis kelompok Anda di sini..." 
+                                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    {/* TAHAP 2 & 3: PENYELIDIKAN & VIRTUAL LAB */}
+                    <div className="space-y-4">
+                        <div className="bg-navy text-white px-4 py-2 rounded-lg font-bold text-sm">
+                            TAHAP 2 & 3: ORGANISASI & PENYELIDIKAN VIRTUAL LAB USAHA
+                        </div>
+
+                        <LabUsaha 
+                            force={force} 
+                            setForce={setForce} 
+                            position={position} 
+                            setPosition={setPosition} 
+                            isRunning={isRunning} 
+                            setIsRunning={setIsRunning} 
+                            surfaceType={surface} 
+                            setSurfaceType={setSurface} 
+                        />
+
+                        <div className="bg-slate-50 p-4 rounded-xl border flex flex-wrap gap-4 items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-gray-700">Gaya Dorong (N): {force}N</label>
+                                <input type="range" min="0" max="600" step="50" value={force} onChange={e => setForce(Number(e.target.value))} className="w-32" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-gray-700">Permukaan:</label>
+                                <select value={surface} onChange={e => setSurface(e.target.value)} className="border rounded p-1 text-xs">
+                                    <option value="kasar">Kasar (&mu;s=0.35)</option>
+                                    <option value="sedang">Sedang</option>
+                                    <option value="licin">Tanpa Gesekan (Licin)</option>
+                                </select>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => setIsRunning(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1">
+                                    <i data-lucide="play" className="w-3.5 h-3.5"></i> Play
+                                </button>
+                                <button onClick={() => setIsRunning(false)} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1">
+                                    <i data-lucide="pause" className="w-3.5 h-3.5"></i> Pause
+                                </button>
+                                <button onClick={() => { setIsRunning(false); setPosition(0); }} className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1">
+                                    <i data-lucide="rotate-ccw" className="w-3.5 h-3.5"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="bg-blue-50/50 p-4 rounded-xl border space-y-3">
+                            <h5 className="font-bold text-navy text-sm">Eksperimen 1: Kapan Sebuah Dorongan Disebut Usaha?</h5>
+                            <div>
+                                <p className="text-xs text-gray-700 mb-1">1. Berikan gaya 100 N pada permukaan kasar. Apakah lemari arsip bergerak? Apakah terdapat nilai usaha yang dihasilkan?</p>
+                                <textarea rows="2" value={data.ansExp1_1} onChange={e => setData({...data, ansExp1_1: e.target.value})} placeholder="Tuliskan jawaban pengamatan..." className="w-full border rounded p-2 text-sm bg-white"></textarea>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-700 mb-1">2. Naikkan gaya dorong menjadi 400 N. Ketika lemari mulai mengalami perpindahan, apa yang terjadi pada nilai usaha?</p>
+                                <textarea rows="2" value={data.ansExp1_2} onChange={e => setData({...data, ansExp1_2: e.target.value})} placeholder="Tuliskan jawaban pengamatan..." className="w-full border rounded p-2 text-sm bg-white"></textarea>
+                            </div>
+                            <div className="mt-2">
+                                <p className="text-xs font-bold text-gray-800 mb-1">Analisis Eksperimen 1 (Lengkapi kalimat):</p>
+                                <p className="text-xs text-gray-700">
+                                    "Agar suatu gaya dapat menghasilkan usaha dalam fisika, benda harus mengalami <input type="text" value={data.kesimpulanExp1[0]} onChange={e => {const k=[...data.kesimpulanExp1]; k[0]=e.target.value; setData({...data, kesimpulanExp1:k});}} placeholder="..." className="border-b px-1 text-center font-bold w-24 outline-none" />. Jika benda tidak bergerak meskipun diberikan gaya yang besar, maka usaha oleh gaya tersebut adalah <input type="text" value={data.kesimpulanExp1[1]} onChange={e => {const k=[...data.kesimpulanExp1]; k[1]=e.target.value; setData({...data, kesimpulanExp1:k});}} placeholder="..." className="border-b px-1 text-center font-bold w-16 outline-none" /> Joule."
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-blue-50/50 p-4 rounded-xl border space-y-3">
+                            <h5 className="font-bold text-navy text-sm">Eksperimen 2: Hubungan Gaya dan Perpindahan Terhadap Usaha ($W = F \times \Delta s$)</h5>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-white p-3 rounded-lg border">
+                                    <h6 className="font-bold text-xs text-navy mb-2">Tugas A: Mengubah Gaya (&Delta;s = 5 m konstan)</h6>
+                                    <div className="flex gap-2 mb-2">
+                                        <button onClick={() => runSimTaskA(100, 5)} className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Jalankan F=100N</button>
+                                        <button onClick={() => runSimTaskA(200, 5)} className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Jalankan F=200N</button>
+                                    </div>
+                                    <table className="w-full text-xs border">
+                                        <thead>
+                                            <tr className="bg-gray-100">
+                                                <th className="border p-1">No</th><th className="border p-1">Gaya (N)</th><th className="border p-1">Perpindahan (m)</th><th className="border p-1">Usaha (J)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td className="border p-1 text-center">1</td><td className="border p-1 text-center">100</td><td className="border p-1 text-center">5</td><td className="border p-1"><input type="text" value={data.tugasATable[1]} onChange={e => setData({...data, tugasATable: {...data.tugasATable, 1: e.target.value}})} placeholder="500 J" className="w-full text-center outline-none" /></td></tr>
+                                            <tr><td className="border p-1 text-center">2</td><td className="border p-1 text-center">200</td><td className="border p-1 text-center">5</td><td className="border p-1"><input type="text" value={data.tugasATable[2]} onChange={e => setData({...data, tugasATable: {...data.tugasATable, 2: e.target.value}})} placeholder="1000 J" className="w-full text-center outline-none" /></td></tr>
+                                        </tbody>
+                                    </table>
+                                    <div className="mt-2 text-xs">
+                                        <p>Semakin besar gaya yang diberikan pada perpindahan yang sama, maka usaha yang dihasilkan akan semakin:</p>
+                                        <select value={data.tugasAPilihan} onChange={e => setData({...data, tugasAPilihan: e.target.value})} className="border rounded p-1 mt-1 w-full text-xs">
+                                            <option value="">-- Pilih --</option>
+                                            <option value="besar">Besar</option>
+                                            <option value="kecil">Kecil</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-3 rounded-lg border">
+                                    <h6 className="font-bold text-xs text-navy mb-2">Tugas B: Mengubah Jarak (F = 200 N konstan)</h6>
+                                    <div className="flex gap-2 mb-2">
+                                        <button onClick={() => runSimTaskA(200, 3)} className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Jalankan s=3m</button>
+                                        <button onClick={() => runSimTaskA(200, 8)} className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Jalankan s=8m</button>
+                                    </div>
+                                    <table className="w-full text-xs border">
+                                        <thead>
+                                            <tr className="bg-gray-100">
+                                                <th className="border p-1">No</th><th className="border p-1">Gaya (N)</th><th className="border p-1">Perpindahan (m)</th><th className="border p-1">Usaha (J)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td className="border p-1 text-center">1</td><td className="border p-1 text-center">200</td><td className="border p-1 text-center">3</td><td className="border p-1"><input type="text" value={data.tugasBTable[1]} onChange={e => setData({...data, tugasBTable: {...data.tugasBTable, 1: e.target.value}})} placeholder="600 J" className="w-full text-center outline-none" /></td></tr>
+                                            <tr><td className="border p-1 text-center">2</td><td className="border p-1 text-center">200</td><td className="border p-1 text-center">8</td><td className="border p-1"><input type="text" value={data.tugasBTable[2]} onChange={e => setData({...data, tugasBTable: {...data.tugasBTable, 2: e.target.value}})} placeholder="1600 J" className="w-full text-center outline-none" /></td></tr>
+                                        </tbody>
+                                    </table>
+                                    <div className="mt-2 text-xs">
+                                        <p>Semakin jauh perpindahan benda dengan gaya yang sama, maka usaha yang dihasilkan akan semakin:</p>
+                                        <select value={data.tugasBPilihan} onChange={e => setData({...data, tugasBPilihan: e.target.value})} className="border rounded p-1 mt-1 w-full text-xs">
+                                            <option value="">-- Pilih --</option>
+                                            <option value="besar">Besar</option>
+                                            <option value="kecil">Kecil</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="bg-navy text-white px-4 py-2 rounded-lg font-bold text-sm">
+                            TAHAP 4 & 5: ANALISIS, PENYAJIAN, DAN KESIMPULAN
+                        </div>
+                        
+                        <div className="space-y-3 bg-slate-50 p-4 rounded-xl border">
+                            <h5 className="font-bold text-navy text-sm">Pertanyaan Analisis Masalah Budi &amp; Andi</h5>
+                            <div>
+                                <p className="text-xs text-gray-700 mb-1">1. Budi mendorong lemari es sekuat tenaga, tetapi lemari es tidak bergerak. Berapa usaha dalam fisika yang dilakukan Budi? Jelaskan!</p>
+                                <textarea rows="2" value={data.analisis1} onChange={e => setData({...data, analisis1: e.target.value})} placeholder="Tuliskan analisis fisika..." className="w-full border rounded p-2 text-sm bg-white"></textarea>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-700 mb-1">2. Andi berhasil memindahkan lemari es ke atas truk. Apakah Andi melakukan usaha? Jelaskan komponen fisika yang terpenuhi!</p>
+                                <textarea rows="2" value={data.analisis2} onChange={e => setData({...data, analisis2: e.target.value})} placeholder="Tuliskan analisis fisika..." className="w-full border rounded p-2 text-sm bg-white"></textarea>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 bg-emerald-50/50 p-4 rounded-xl border">
+                            <h5 className="font-bold text-navy text-sm">Kesimpulan Materi 1 (Usaha)</h5>
+                            <p className="text-xs text-gray-600">Tuliskan tiga hal penting yang kalian pelajari mengenai konsep usaha dalam fisika:</p>
+                            {[0, 1, 2].map(idx => (
+                                <div key={idx} className="flex items-center gap-2">
+                                    <span className="font-bold text-xs text-emerald-700">{idx+1}.</span>
+                                    <input 
+                                        type="text" 
+                                        value={data.kesimpulanHarian[idx]} 
+                                        onChange={e => {
+                                            const k = [...data.kesimpulanHarian];
+                                            k[idx] = e.target.value;
+                                            setData({...data, kesimpulanHarian: k});
+                                        }} 
+                                        placeholder={`Kesimpulan poin ${idx+1}...`} 
+                                        className="flex-1 border rounded p-2 text-sm bg-white outline-none" 
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 no-print">
+                            <button onClick={onSave} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-xl transition flex items-center gap-2">
+                                <i data-lucide="save" className="w-4 h-4"></i> Simpan LKM Usaha
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ==========================================
+        // 6. MATERI 2 COMPONENT (ENERGI - FIXED)
+        // ==========================================
+        function Materi2({ identity, data, setData, onSave, onReset, onDownload, onBack }) {
+            const [mass, setMass] = useState(50);
+            const [skaterX, setSkaterX] = useState(0); // 0 sampai 50 meter
+            const [isRunning, setIsRunning] = useState(false);
+            const [showBars, setShowBars] = useState(true);
+            const [showGrid, setShowGrid] = useState(true);
+            const [showSpeed, setShowSpeed] = useState(true);
+            const [velocityDir, setVelocityDir] = useState(1); // 1 ke kanan, -1 ke kiri
+
+            // Animasi osilasi skater pada lintasan U
+            useEffect(() => {
+                let timer;
+                if (isRunning) {
+                    timer = setInterval(() => {
+                        setSkaterX(prev => {
+                            let nextX = prev + velocityDir * 0.6;
+                            if (nextX >= 50) {
+                                setVelocityDir(-1);
+                                return 50;
+                            }
+                            if (nextX <= 0) {
+                                setVelocityDir(1);
+                                return 0;
+                            }
+                            return nextX;
+                        });
+                    }, 40);
+                }
+                return () => clearInterval(timer);
+            }, [isRunning, velocityDir]);
+
+            return (
+                <div className="space-y-6 bg-white p-6 md:p-10 rounded-2xl shadow-xl print-container">
+                    <div className="flex justify-between items-center border-b pb-4 no-print">
+                        <button onClick={onBack} className="text-emerald-600 hover:text-emerald-800 text-sm font-semibold flex items-center gap-1">
+                            <i data-lucide="arrow-left" className="w-4 h-4"></i> Kembali ke Beranda
+                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={onSave} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1">
+                                <i data-lucide="save" className="w-4 h-4"></i> Simpan LKM
+                            </button>
+                            <button onClick={onReset} className="bg-red-500 hover:bg-red-600 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1">
+                                <i data-lucide="rotate-ccw" className="w-4 h-4"></i> Reset
+                            </button>
+                            <button onClick={onDownload} className="bg-navy hover:bg-navy-dark text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1">
+                                <i data-lucide="printer" className="w-4 h-4"></i> Unduh / Cetak PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="text-center">
+                        <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full uppercase">LKM Digital Interaktif &bull; PBL</span>
+                        <h2 className="text-2xl font-bold text-navy mt-2">LEMBAR KERJA MURID (LKM)</h2>
+                        <h3 className="text-xl font-bold text-emerald-700">MATERI 2: ENERGI DAN HUKUM KEKEKALAN ENERGI</h3>
+                        <p className="text-xs text-gray-500 mt-1">Kelompok: {identity.kelompok} | Kelas: {identity.kelas} | Tanggal: {identity.tanggal}</p>
+                    </div>
+
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+                        <h4 className="font-bold text-navy text-sm uppercase mb-2 flex items-center gap-2">
+                            <i data-lucide="target" className="w-4 h-4 text-emerald-600"></i> A. Tujuan Pembelajaran
+                        </h4>
+                        <ol className="list-decimal list-inside text-sm text-gray-700 space-y-1">
+                            <li>Menjelaskan konsep energi potensial dan energi kinetik berdasarkan hasil pengamatan virtual lab.</li>
+                            <li>Menganalisis perubahan energi potensial dan energi kinetik pada benda yang bergerak.</li>
+                            <li>Membuktikan hukum kekekalan energi mekanik melalui eksperimen virtual.</li>
+                            <li>Memecahkan permasalahan energi dalam kehidupan sehari-hari.</li>
+                        </ol>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                        <h4 className="font-bold text-navy text-sm uppercase mb-2 flex items-center gap-2">
+                            <i data-lucide="info" className="w-4 h-4 text-slate-600"></i> B. Petunjuk Penggunaan LKM
+                        </h4>
+                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                            <li>Kerjakan LKM bersama anggota kelompok dengan saksama.</li>
+                            <li>Gunakan virtual lab skater untuk melakukan penyelidikan perubahan energi.</li>
+                            <li>Catat data pengamatan pada tabel dan diskusikan jawaban bersama kelompok.</li>
+                        </ul>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="bg-emerald-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                            TAHAP 1: ORIENTASI MURID PADA MASALAH (GERAK SKATEBOARD DI LINTASAN U)
+                        </div>
+                        <div className="bg-slate-50 p-4 rounded-xl border flex flex-col md:flex-row gap-4 items-center">
+                            <div className="flex-1 text-sm text-gray-700 space-y-2">
+                                <p className="font-semibold text-emerald-800">Masalah: Gerak Skateboard Dika di Lintasan U</p>
+                                <p>
+                                    "Dika sedang bermain skateboard pada lintasan berbentuk huruf U (halfpipe). Saat berada di ujung paling atas lintasan (5 meter), Dika melepaskan diri tanpa mendorong tanah. Ketika meluncur turun, kelajuannya semakin cepat hingga mencapai bagian paling bawah lintasan. Namun, ketika bergerak naik ke sisi seberangnya, kelajuannya semakin melambat hingga berhenti sejenak di ujung atas, lalu kembali meluncur turun."
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-amber-50 border-l-4 border-orangeQ p-4 text-sm text-amber-900 rounded-r-lg">
+                            <p className="font-semibold mb-1">Pertanyaan Pemantik:</p>
+                            "Mengapa kelajuan Dika berubah-ubah ketika bergerak pada lintasan? Dari mana energi Dika untuk naik kembali ke sisi seberangnya tanpa mendorong tanah?"
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase text-gray-700 mb-1">Hipotesis Awal Kelompok:</label>
+                            <textarea 
+                                rows="3" 
+                                value={data.hipotesis} 
+                                onChange={e => setData({...data, hipotesis: e.target.value})}
+                                placeholder="Tuliskan hipotesis kelompok mengenai perubahan energi Dika..." 
+                                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="bg-emerald-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                            TAHAP 2 & 3: ORGANISASI & PENYELIDIKAN VIRTUAL LAB ENERGI
+                        </div>
+
+                        <LabEnergi 
+                            mass={mass} 
+                            skaterX={skaterX}
+                            setSkaterX={setSkaterX}
+                            isRunning={isRunning} 
+                            showBars={showBars} 
+                            showGrid={showGrid} 
+                            showSpeed={showSpeed} 
+                        />
+
+                        <div className="bg-slate-50 p-4 rounded-xl border flex flex-wrap gap-4 items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setIsRunning(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1">
+                                    <i data-lucide="play" className="w-3.5 h-3.5"></i> Play
+                                </button>
+                                <button onClick={() => setIsRunning(false)} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1">
+                                    <i data-lucide="pause" className="w-3.5 h-3.5"></i> Pause
+                                </button>
+                                <button onClick={() => { setIsRunning(false); setSkaterX(0); setVelocityDir(1); }} className="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1">
+                                    <i data-lucide="rotate-ccw" className="w-3.5 h-3.5"></i> Reset
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-gray-700">Massa: {mass} kg</label>
+                                <input type="range" min="20" max="100" step="10" value={mass} onChange={e => setMass(Number(e.target.value))} className="w-28" />
+                            </div>
+                            <div className="flex items-center gap-3 text-xs font-semibold">
+                                <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showBars} onChange={e => setShowBars(e.target.checked)} /> Grafik Batang</label>
+                                <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} /> Kisi Ketinggian</label>
+                                <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showSpeed} onChange={e => setShowSpeed(e.target.checked)} /> Kelajuan</label>
+                            </div>
+                        </div>
+
+                        <div className="bg-emerald-50/50 p-4 rounded-xl border space-y-3">
+                            <h5 className="font-bold text-navy text-sm">Eksperimen 1: Mengenal Energi Potensial dan Energi Kinetik</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <p className="text-xs text-gray-700 mb-1">1. Letakkan skater di ujung paling atas (5m). Amati grafik batang energi dan kelajuan.</p>
+                                    <textarea rows="2" value={data.ansExp1_atas} onChange={e => setData({...data, ansExp1_atas: e.target.value})} placeholder="Jawaban pengamatan posisi atas..." className="w-full border rounded p-2 text-sm bg-white"></textarea>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-700 mb-1">2. Jalankan simulasi hingga titik paling bawah (0m). Amati grafik batang dan kelajuannya.</p>
+                                    <textarea rows="2" value={data.ansExp1_bawah} onChange={e => setData({...data, ansExp1_bawah: e.target.value})} placeholder="Jawaban pengamatan posisi bawah..." className="w-full border rounded p-2 text-sm bg-white"></textarea>
+                                </div>
+                            </div>
+
+                            <div className="mt-3">
+                                <h6 className="font-bold text-xs text-navy mb-1">Tabel Pengamatan Eksperimen 1:</h6>
+                                <table className="w-full text-xs border bg-white">
+                                    <thead>
+                                        <tr className="bg-gray-100">
+                                            <th className="border p-1.5">Posisi</th><th className="border p-1.5">Ketinggian (m)</th><th className="border p-1.5">Kelajuan (m/s)</th><th className="border p-1.5">Ep (J)</th><th className="border p-1.5">Ek (J)</th><th className="border p-1.5">Em (J)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td className="border p-1.5 font-medium">Paling Atas</td>
+                                            <td className="border p-1.5 text-center">5 m</td>
+                                            <td className="border p-1.5"><input type="text" value={data.tabelExp1_atas.v} onChange={e => setData({...data, tabelExp1_atas: {...data.tabelExp1_atas, v: e.target.value}})} placeholder="0" className="w-full text-center outline-none" /></td>
+                                            <td className="border p-1.5"><input type="text" value={data.tabelExp1_atas.ep} onChange={e => setData({...data, tabelExp1_atas: {...data.tabelExp1_atas, ep: e.target.value}})} placeholder="2500" className="w-full text-center outline-none" /></td>
+                                            <td className="border p-1.5"><input type="text" value={data.tabelExp1_atas.ek} onChange={e => setData({...data, tabelExp1_atas: {...data.tabelExp1_atas, ek: e.target.value}})} placeholder="0" className="w-full text-center outline-none" /></td>
+                                            <td className="border p-1.5"><input type="text" value={data.tabelExp1_atas.em} onChange={e => setData({...data, tabelExp1_atas: {...data.tabelExp1_atas, em: e.target.value}})} placeholder="2500" className="w-full text-center outline-none" /></td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border p-1.5 font-medium">Paling Bawah</td>
+                                            <td className="border p-1.5 text-center">0 m</td>
+                                            <td className="border p-1.5"><input type="text" value={data.tabelExp1_bawah.v} onChange={e => setData({...data, tabelExp1_bawah: {...data.tabelExp1_bawah, v: e.target.value}})} placeholder="10" className="w-full text-center outline-none" /></td>
+                                            <td className="border p-1.5"><input type="text" value={data.tabelExp1_bawah.ep} onChange={e => setData({...data, tabelExp1_bawah: {...data.tabelExp1_bawah, ep: e.target.value}})} placeholder="0" className="w-full text-center outline-none" /></td>
+                                            <td className="border p-1.5"><input type="text" value={data.tabelExp1_bawah.ek} onChange={e => setData({...data, tabelExp1_bawah: {...data.tabelExp1_bawah, ek: e.target.value}})} placeholder="2500" className="w-full text-center outline-none" /></td>
+                                            <td className="border p-1.5"><input type="text" value={data.tabelExp1_bawah.em} onChange={e => setData({...data, tabelExp1_bawah: {...data.tabelExp1_bawah, em: e.target.value}})} placeholder="2500" className="w-full text-center outline-none" /></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="mt-2 text-xs text-gray-700 space-y-1">
+                                <p>1. Energi Potensial paling besar terjadi ketika skater berada pada posisi paling 
+                                    <select value={data.analisisExp1_1} onChange={e => setData({...data, analisisExp1_1: e.target.value})} className="border rounded px-1 mx-1 text-xs font-bold">
+                                        <option value="tinggi">Tinggi</option>
+                                        <option value="rendah">Rendah</option>
+                                    </select>, sehingga sangat dipengaruhi oleh ketinggian (h).
+                                </p>
+                                <p>2. Energi Kinetik paling besar terjadi ketika skater meluncur paling 
+                                    <select value={data.analisisExp1_2} onChange={e => setData({...data, analisisExp1_2: e.target.value})} className="border rounded px-1 mx-1 text-xs font-bold">
+                                        <option value="cepat">Cepat</option>
+                                        <option value="lambat">Lambat</option>
+                                    </select> di dasar lintasan, sehingga sangat dipengaruhi oleh kelajuan (v).
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-emerald-50/50 p-4 rounded-xl border space-y-3">
+                            <h5 className="font-bold text-navy text-sm">Eksperimen 2: Menguji Hukum Kekekalan Energi Mekanik</h5>
+                            <table className="w-full text-xs border bg-white">
+                                <thead>
+                                    <tr className="bg-gray-100">
+                                        <th className="border p-1.5">Posisi Lintasan</th><th className="border p-1.5">Ep (J)</th><th className="border p-1.5">Ek (J)</th><th className="border p-1.5">Em = Ep + Ek (J)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {['kiriAtas', 'tengahTurun', 'dasar', 'tengahNaik', 'kananAtas'].map((posKey, i) => {
+                                        const labels = ['Ujung Kiri Atas', 'Tengah Saat Turun', 'Dasar Lintasan', 'Tengah Saat Naik', 'Ujung Kanan Atas'];
+                                        return (
+                                            <tr key={posKey}>
+                                                <td className="border p-1.5 font-medium">{labels[i]}</td>
+                                                <td className="border p-1.5"><input type="text" value={data.tabelExp2[posKey].ep} onChange={e => setData({...data, tabelExp2: {...data.tabelExp2, [posKey]: {...data.tabelExp2[posKey], ep: e.target.value}}})} placeholder="Ep" className="w-full text-center outline-none" /></td>
+                                                <td className="border p-1.5"><input type="text" value={data.tabelExp2[posKey].ek} onChange={e => setData({...data, tabelExp2: {...data.tabelExp2, [posKey]: {...data.tabelExp2[posKey], ek: e.target.value}}})} placeholder="Ek" className="w-full text-center outline-none" /></td>
+                                                <td className="border p-1.5"><input type="text" value={data.tabelExp2[posKey].em} onChange={e => setData({...data, tabelExp2: {...data.tabelExp2, [posKey]: {...data.tabelExp2[posKey], em: e.target.value}}})} placeholder="Em" className="w-full text-center outline-none" /></td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+
+                            <div className="space-y-2 pt-2">
+                                <div>
+                                    <p className="text-xs text-gray-700 mb-1">1. Saat Energi Potensial naik, apa yang terjadi pada Energi Kinetik?</p>
+                                    <input type="text" value={data.ansExp2_1} onChange={e => setData({...data, ansExp2_1: e.target.value})} placeholder="Tuliskan jawaban..." className="w-full border rounded p-2 text-sm bg-white outline-none" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-700 mb-1">2. Apakah batang Energi Total (Kuning) pernah berubah tinggi saat skater bergerak bolak-balik?</p>
+                                    <input type="text" value={data.ansExp2_2} onChange={e => setData({...data, ansExp2_2: e.target.value})} placeholder="Tuliskan jawaban..." className="w-full border rounded p-2 text-sm bg-white outline-none" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-700 mb-1">3. Mengapa skater dapat naik kembali ke sisi seberang tanpa memberikan dorongan tambahan?</p>
+                                    <input type="text" value={data.ansExp2_3} onChange={e => setData({...data, ansExp2_3: e.target.value})} placeholder="Tuliskan jawaban..." className="w-full border rounded p-2 text-sm bg-white outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="bg-emerald-800 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                            TAHAP 4 & 5: ANALISIS DAN KESIMPULAN AKHIR
+                        </div>
+
+                        <div className="space-y-3 bg-slate-50 p-4 rounded-xl border">
+                            <h5 className="font-bold text-navy text-sm">Pertanyaan Analisis Masalah Dika</h5>
+                            <div>
+                                <p className="text-xs text-gray-700 mb-1">1. Jelaskan mengapa Dika meluncur sangat cepat di dasar lintasan, tetapi melambat saat bergerak naik!</p>
+                                <textarea rows="2" value={data.analisisDika1} onChange={e => setData({...data, analisisDika1: e.target.value})} placeholder="Analisis menggunakan konsep Ep dan Ek..." className="w-full border rounded p-2 text-sm bg-white"></textarea>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-700 mb-1">2. Dari mana Dika mendapatkan energi untuk naik kembali ke ujung lintasan seberangnya tanpa mendorong tanah?</p>
+                                <textarea rows="2" value={data.analisisDika2} onChange={e => setData({...data, analisisDika2: e.target.value})} placeholder="Analisis hukum kekekalan energi..." className="w-full border rounded p-2 text-sm bg-white"></textarea>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 bg-emerald-50/50 p-4 rounded-xl border">
+                            <h5 className="font-bold text-navy text-sm">Kesimpulan Hari Ini (Materi Energi)</h5>
+                            <div className="space-y-2 text-xs text-gray-700">
+                                <p>1. Energi Potensial adalah energi yang dimiliki benda karena <input type="text" value={data.kesimpulanAkhir[0]} onChange={e => {const k=[...data.kesimpulanAkhir]; k[0]=e.target.value; setData({...data, kesimpulanAkhir:k});}} placeholder="ketinggian / posisi..." className="border-b px-1 font-bold w-48 outline-none" /></p>
+                                <p>2. Energi Kinetik adalah energi yang dimiliki benda karena <input type="text" value={data.kesimpulanAkhir[1]} onChange={e => {const k=[...data.kesimpulanAkhir]; k[1]=e.target.value; setData({...data, kesimpulanAkhir:k});}} placeholder="kecepatan / gerak..." className="border-b px-1 font-bold w-48 outline-none" /></p>
+                                <p>3. Hukum Kekekalan Energi Mekanik menyatakan bahwa <input type="text" value={data.kesimpulanAkhir[2]} onChange={e => {const k=[...data.kesimpulanAkhir]; k[2]=e.target.value; setData({...data, kesimpulanAkhir:k});}} placeholder="energi total selalu tetap..." className="border-b px-1 font-bold w-64 outline-none" /></p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 no-print">
+                            <button onClick={onSave} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-xl transition flex items-center gap-2">
+                                <i data-lucide="save" className="w-4 h-4"></i> Simpan LKM Energi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+        setTimeout(() => {
+            if (window.lucide) lucide.createIcons();
+        }, 100);
+    </script>
+</body>
+</html>
