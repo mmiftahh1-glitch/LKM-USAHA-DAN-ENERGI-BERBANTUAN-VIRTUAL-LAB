@@ -1,1163 +1,496 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LKM Digital Interaktif - Usaha dan Energi</title>
-<!-- Tailwind CSS CDN -->
-<script src="https://cdn.tailwindcss.com"></script>
-<!-- React & ReactDOM CDN -->
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<!-- Babel Standalone for JSX compilation in browser -->
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-body { font-family: 'Inter', sans-serif; }
-@media print {
-.print:hidden { display: none !important; }
-body { background: white !important; color: black !important; }
-}
-</style>
-</head>
-<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
-<div id="root"></div>
-​<script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
-​// --- STYLING CONSTANTS ---
-const COLORS = {
-primary: 'bg-slate-800 text-white',
-secondary: 'bg-blue-50',
-accentGreen: 'bg-teal-500 text-white',
-accentOrange: 'bg-orange-500 text-white',
-surface: 'bg-white',
-border: 'border-slate-200',
-};
-​// --- HELPER COMPONENTS ---
-const Card = ({ children, className = '' }) => (
-<div className={bg-white rounded-xl shadow-md border ${COLORS.border} overflow-hidden ${className}}>
-{children}
-</div>
-);
-​const Button = ({ onClick, children, variant = 'primary', className = '', disabled = false }) => {
-const variants = {
-primary: 'bg-slate-800 hover:bg-slate-700 text-white',
-secondary: 'bg-blue-100 hover:bg-blue-200 text-slate-800',
-green: 'bg-teal-600 hover:bg-teal-700 text-white',
-orange: 'bg-orange-500 hover:bg-orange-600 text-white',
-danger: 'bg-red-500 hover:bg-red-600 text-white',
-outline: 'border-2 border-slate-800 text-slate-800 hover:bg-slate-50',
-};
-return (
-<button
-onClick={onClick}
-disabled={disabled}
-className={px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}}
->
-{children}
-</button>
-);
-};
-​const SectionHeader = ({ title, subtitle, colorClass = COLORS.primary }) => (
-<div className={${colorClass} p-4 rounded-t-xl mb-4 print:bg-white print:text-black print:border-b-2 print:border-black}>
-<h2 className="text-xl font-bold">{title}</h2>
-{subtitle ? <p className="text-sm opacity-90">{subtitle}</p> : null}
-</div>
-);
-​const TextArea = ({ value, onChange, placeholder, rows = 4 }) => (
-<textarea
-className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y print:border-none print:resize-none"
-rows={rows}
-value={value || ''}
-onChange={(e) => onChange(e.target.value)}
-placeholder={placeholder}
-/>
-);
-​const Input = ({ value, onChange, placeholder, type = 'text', className = '' }) => (
-<input
-type={type}
-className={p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${className} print:border-none}
-value={value || ''}
-onChange={(e) => onChange(e.target.value)}
-placeholder={placeholder}
-/>
-);
-​// --- LOCAL STORAGE HOOK ---
-const useLocalStorage = (key, initialValue) => {
-const [storedValue, setStoredValue] = useState(() => {
-try {
-const item = window.localStorage.getItem(key);
-return item ? JSON.parse(item) : initialValue;
-} catch (error) {
-console.error(error);
-return initialValue;
-}
-});
-​const setValue = (value) => {
-try {
-const valueToStore = value instanceof Function ? value(storedValue) : value;
-setStoredValue(valueToStore);
-window.localStorage.setItem(key, JSON.stringify(valueToStore));
-} catch (error) {
-console.error(error);
-}
-};
-​return [storedValue, setValue];
-};
-​const initialIdentity = { class: '', group: '', date: '', members: ['', '', '', '', ''] };
-const initialLKM1 = {
-hypothesis: '',
-exp1_q1: '', exp1_q2: '', exp1_kesimpulan1: '', exp1_kesimpulan2: '',
-exp2_tableA_1: '', exp2_tableA_2: '', exp2_q1: '',
-exp2_tableB_1: '', exp2_tableB_2: '', exp2_q2: '',
-analysis1: '', analysis2: '',
-final_kesimpulan1: '', final_kesimpulan2: '', final_kesimpulan3: ''
-};
-const initialLKM2 = {
-hypothesis: '',
-exp1_q1: '', exp1_q2: '',
-exp1_kesimpulan1_dropdown: '', exp1_kesimpulan2_dropdown: '',
-exp1_table_atas_h: '', exp1_table_atas_v: '', exp1_table_atas_ep: '', exp1_table_atas_ek: '', exp1_table_atas_em: '',
-exp1_table_bawah_h: '', exp1_table_bawah_v: '', exp1_table_bawah_ep: '', exp1_table_bawah_ek: '', exp1_table_bawah_em: '',
-exp1_kesimpulan1: '', exp1_kesimpulan2: '',
-exp2_table: [
-{ pos: 'Ujung kiri atas', ep: '', ek: '', em: '' },
-{ pos: 'Tengah saat turun', ep: '', ek: '', em: '' },
-{ pos: 'Dasar lintasan', ep: '', ek: '', em: '' },
-{ pos: 'Tengah saat naik', ep: '', ek: '', em: '' },
-{ pos: 'Ujung kanan atas', ep: '', ek: '', em: '' }
-],
-exp2_q1: '', exp2_q2: '', exp2_q3: '',
-exp2_kesimpulan1: '', exp2_kesimpulan2: '', exp2_kesimpulan3: '', exp2_kesimpulan4: '',
-analysis1: '', analysis2: '',
-final_kesimpulan1: '', final_kesimpulan2: '', final_kesimpulan3: ''
-};
-​// --- VIRTUAL LAB USAHA ---
-const LabUsaha = ({ onDataChange, targetDisplacement = null, initialForce = 100, mode = 'free' }) => {
-const [force, setForce] = useState(initialForce);
-const [surface, setSurface] = useState('kasar');
-const [isPlaying, setIsPlaying] = useState(false);
-const [pos, setPos] = useState(0);
-const [vel, setVel] = useState(0);
-const [work, setWork] = useState(0);
-const [friction, setFriction] = useState(0);
-​const requestRef = useRef();
-const lastTimeRef = useRef();
-​const m = 100;
-const g = 10;
-const mu_s = 0.35;
-const mu_k = 0.25;
-const W_weight = m * g;
-const max_fs = mu_s * W_weight;
-const fk = mu_k * W_weight;
-​const resetLab = useCallback(() => {
-setIsPlaying(false);
-setPos(0);
-setVel(0);
-setWork(0);
-setFriction(0);
-cancelAnimationFrame(requestRef.current);
-}, []);
-​const updatePhysics = useCallback((time) => {
-if (!lastTimeRef.current) lastTimeRef.current = time;
-const dt = (time - lastTimeRef.current) / 1000;
-lastTimeRef.current = time;
-​setPos((prevPos) => {
-setVel((prevVel) => {
-let currentVel = prevVel;
-let currentPos = prevPos;
-let accel = 0;
-let currentFriction = 0;
-​const isLicin = surface === 'licin';
-const currentForce = force;
-​if (currentVel === 0) {
-if (isLicin) {
-accel = currentForce / m;
-currentFriction = 0;
-} else {
-if (currentForce <= max_fs) {
-accel = 0;
-currentFriction = currentForce;
-} else {
-accel = (currentForce - fk) / m;
-currentFriction = fk;
-}
-}
-} else if (currentVel > 0) {
-if (isLicin) {
-accel = currentForce / m;
-currentFriction = 0;
-} else {
-accel = (currentForce - fk) / m;
-currentFriction = fk;
-}
-}
-​currentVel += accel * dt;
-if (currentVel < 0) { currentVel = 0; currentFriction = 0; }
-​let nextPos = currentPos + currentVel * dt;
-​if (targetDisplacement !== null && nextPos >= targetDisplacement) {
-nextPos = targetDisplacement;
-currentVel = 0;
-setIsPlaying(false);
-}
-​setFriction(currentFriction);
-if (nextPos > prevPos) {
-setWork((prevWork) => prevWork + (currentForce * (nextPos - prevPos)));
-}
-​return currentVel;
-});
-return prevPos + (vel * dt);
-});
-​if (isPlaying) {
-requestRef.current = requestAnimationFrame(updatePhysics);
-}
-}, [isPlaying, force, surface, targetDisplacement, max_fs, fk, m, vel]);
-​useEffect(() => {
-if (isPlaying) {
-requestRef.current = requestAnimationFrame(updatePhysics);
-} else {
-cancelAnimationFrame(requestRef.current);
-lastTimeRef.current = undefined;
-}
-return () => cancelAnimationFrame(requestRef.current);
-}, [isPlaying, updatePhysics]);
-​useEffect(() => {
-if(mode !== 'free') {
-setForce(initialForce);
-resetLab();
-}
-}, [mode, initialForce, resetLab]);
-​const svgWidth = 600;
-const svgHeight = 200;
-const pixelsPerMeter = 50;
-const boxWidth = 60;
-const boxHeight = 80;
-const boxX = 50 + pos * pixelsPerMeter;
-const groundY = 180;
-​return (
-<div className="flex flex-col gap-4 border rounded-xl p-4 bg-slate-50 print:hidden">
-<div className="flex justify-between items-center mb-2">
-<h3 className="font-bold text-slate-800">Area Virtual Lab: Usaha</h3>
-<div className="text-sm bg-blue-100 px-3 py-1 rounded-full text-blue-800 font-semibold">
-Usaha (W) = {Math.round(work)} Joule
-</div>
-</div>
-​<div className="relative w-full overflow-hidden bg-white border border-slate-300 rounded-lg shadow-inner" style={{ height: '220px' }}>
-<svg width="100%" height="100%" viewBox={0 0 ${svgWidth} ${svgHeight}} preserveAspectRatio="xMidYMid slice">
-<g className="text-slate-300">
-{[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(m => (
-<g key={m} transform={translate(${50 + m * pixelsPerMeter}, ${groundY})}>
-<line x1="0" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="2" />
-<text x="0" y="25" textAnchor="middle" fontSize="12" fill="#64748b">{m}m</text>
-</g>
-))}
-</g>
-​<line x1="0" y1={groundY} x2={svgWidth} y2={groundY} stroke="#475569" strokeWidth="4" />
-​{targetDisplacement != null && (
-<line x1={50 + targetDisplacement * pixelsPerMeter} y1={groundY - 100} x2={50 + targetDisplacement * pixelsPerMeter} y2={groundY} stroke="#10b981" strokeWidth="2" strokeDasharray="5,5" />
-)}
-​<g transform={translate(${boxX}, ${groundY - boxHeight})}>
-<rect width={boxWidth} height={boxHeight} fill="#94a3b8" stroke="#475569" strokeWidth="2" rx="4" />
-<line x1="10" y1="20" x2="50" y2="20" stroke="#cbd5e1" strokeWidth="2" />
-<line x1="10" y1="40" x2="50" y2="40" stroke="#cbd5e1" strokeWidth="2" />
-​<g transform="translate(-30, 10)">
-<circle cx="15" cy="10" r="8" fill="#f59e0b" />
-<line x1="15" y1="18" x2="15" y2="50" stroke="#f59e0b" strokeWidth="4" />
-<line x1="15" y1="25" x2="35" y2="20" stroke="#f59e0b" strokeWidth="4" />
-<line x1="15" y1="50" x2="5" y2="70" stroke="#f59e0b" strokeWidth="4" />
-<line x1="15" y1="50" x2="25" y2="70" stroke="#f59e0b" strokeWidth="4" />
-</g>
-​{force > 0 && (
-<g transform={translate(${boxWidth / 2}, ${boxHeight / 2})}>
-<line x1="0" y1="0" x2={force / 5} y2="0" stroke="#3b82f6" strokeWidth="4" markerEnd="url(#arrow-force)" />
-<text x={force / 10} y="-10" textAnchor="middle" fontSize="12" fill="#2563eb" fontWeight="bold">F = {force} N</text>
-</g>
-)}
-​{friction > 0 && (
-<g transform={translate(${boxWidth / 2}, ${boxHeight - 10})}>
-<line x1="0" y1="0" x2={-friction / 5} y2="0" stroke="#ef4444" strokeWidth="3" markerEnd="url(#arrow-friction)" />
-<text x={-friction / 10} y="-10" textAnchor="middle" fontSize="10" fill="#dc2626">fg</text>
-</g>
-)}
-</g>
-​<defs>
-<marker id="arrow-force" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-<path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
-</marker>
-<marker id="arrow-friction" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-<path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
-</marker>
-</defs>
-</svg>
-​<div className="absolute top-2 left-2 bg-white/80 p-2 rounded text-xs shadow">
-<p>Posisi: {pos.toFixed(2)} m</p>
-{targetDisplacement != null && <p className="text-teal-600 font-bold">Target: {targetDisplacement} m</p>}
-</div>
-</div>
-​<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-<div className="space-y-3">
-<div className="flex justify-between items-center">
-<label className="text-sm font-semibold">Gaya Dorong (N): {force}</label>
-{mode === 'free' && (
-<input
-type="range" min="0" max="600" step="10"
-value={force} onChange={(e) => setForce(Number(e.target.value))}
-disabled={isPlaying}
-className="w-1/2"
-/>
-)}
-</div>
-{mode === 'free' && (
-<div className="flex justify-between items-center">
-<label className="text-sm font-semibold">Permukaan:</label>
-<select
-value={surface} onChange={(e) => setSurface(e.target.value)}
-disabled={isPlaying || pos > 0}
-className="border rounded p-1 text-sm"
->
-<option value="kasar">Kasar (Ada Gesekan)</option>
-<option value="licin">Licin (Tanpa Gesekan)</option>
-</select>
-</div>
-)}
-</div>
-​<div className="flex items-center justify-end gap-2">
-<Button variant={isPlaying ? 'danger' : 'green'} onClick={() => setIsPlaying(!isPlaying)}>
-{isPlaying ? 'Pause' : 'Play'}
-</Button>
-<Button variant="outline" onClick={resetLab}>Reset</Button>
-{onDataChange && (
-<Button variant="orange" onClick={() => onDataChange(Math.round(work))}>
-Catat Hasil (W)
-</Button>
-)}
-</div>
-</div>
-</div>
-);
-};
-​// --- VIRTUAL LAB ENERGI (FULL FEATURED SKATE PARK) ---
-const LabEnergi = ({ onRecordTop, onRecordBottom, onRecordData }) => {
-const [isPlaying, setIsPlaying] = useState(false);
-const [mass, setMass] = useState(50);
-​const [showGraph, setShowGraph] = useState(true);
-const [showGrid, setShowGrid] = useState(true);
-const [showSpeed, setShowSpeed] = useState(true);
-const [autoPauseBottom, setAutoPauseBottom] = useState(false);
-​const [x, setX] = useState(5); // coordinate from -5 to 5
-const [v, setV] = useState(0);
-​const requestRef = useRef();
-const lastTimeRef = useRef();
-const draggingRef = useRef(false);
-​const g = 10;
-const E_total = mass * g * 5; // Total energy at 5m height
-​const calculatePhysics = (currentX) => {
-const h = 0.2 * currentX * currentX; // parabola h = 0.2*x^2 (max 5m at x=5)
-let ep = mass * g * h;
-if (ep > E_total) ep = E_total;
-const ek = E_total - ep;
-const speedMag = Math.sqrt(Math.max(0, (2 * ek) / mass));
-return { h, ep, ek, speedMag, em: E_total };
-};
-​const resetLab = useCallback(() => {
-setIsPlaying(false);
-setX(5);
-setV(0);
-cancelAnimationFrame(requestRef.current);
-}, []);
-​const stepForward = () => {
-setIsPlaying(false);
-setX((prevX) => {
-const dydx = 0.4 * prevX;
-const accelX = - (g * dydx) / (1 + dydx * dydx);
-let newV = v + accelX * 0.05;
-let newX = prevX + newV * 0.05;
-if (newX > 5) { newX = 5; newV = 0; }
-if (newX < -5) { newX = -5; newV = 0; }
-setV(newV);
-return newX;
-});
-};
-​const updatePhysics = useCallback((time) => {
-if (!lastTimeRef.current) lastTimeRef.current = time;
-const dt = Math.min((time - lastTimeRef.current) / 1000, 0.1);
-lastTimeRef.current = time;
-​setX((prevX) => {
-const dydx = 0.4 * prevX;
-const accelX = - (g * dydx) / (1 + dydx * dydx);
-let newV = v + accelX * dt;
-let newX = prevX + newV * dt;
-​if (autoPauseBottom && prevX * newX <= 0 && prevX !== 0) {
-setIsPlaying(false);
-newX = 0;
-newV = -newV;
-}
-​if (newX > 5) { newX = 5; newV = 0; }
-if (newX < -5) { newX = -5; newV = 0; }
-​setV(newV);
-return newX;
-});
-​if (isPlaying) {
-requestRef.current = requestAnimationFrame(updatePhysics);
-}
-}, [isPlaying, v, autoPauseBottom]);
-​useEffect(() => {
-if (isPlaying) {
-requestRef.current = requestAnimationFrame(updatePhysics);
-} else {
-cancelAnimationFrame(requestRef.current);
-lastTimeRef.current = undefined;
-}
-return () => cancelAnimationFrame(requestRef.current);
-}, [isPlaying, updatePhysics]);
-​const { h, ep, ek, speedMag, em } = calculatePhysics(x);
-​const svgW = 500;
-const svgH = 300;
-const pxPerMeter = 40;
-const originX = 250;
-const originY = 250;
-​const skaterX = originX + x * pxPerMeter;
-const skaterY = originY - h * pxPerMeter;
-​let trackD = M ${originX - 5 * pxPerMeter} ${originY - 5 * pxPerMeter} ;
-for(let px = -5; px <= 5; px += 0.5) {
-const py = 0.2 * px * px;
-trackD += L ${originX + px * pxPerMeter} ${originY - py * pxPerMeter} ;
-}
-​const handleMouseDown = () => {
-if(isPlaying) return;
-draggingRef.current = true;
-};
-const handleMouseUp = () => { draggingRef.current = false; };
-​const handleInteractionMove = (clientX, targetEl) => {
-if (!draggingRef.current || isPlaying || !targetEl) return;
-const rect = targetEl.getBoundingClientRect();
-const mouseX = clientX - rect.left;
-let newPhysicsX = (mouseX - originX) / pxPerMeter;
-if(newPhysicsX > 5) newPhysicsX = 5;
-if(newPhysicsX < -5) newPhysicsX = -5;
-setX(newPhysicsX);
-setV(0);
-};
-​return (
-<div className="flex flex-col lg:flex-row gap-4 border rounded-xl p-4 bg-slate-50 print:hidden">
-<div className="flex-1 space-y-3">
-<div className="flex justify-between items-center">
-<h3 className="font-bold text-slate-800">Area Virtual Lab: Energi (Skate Park U)</h3>
-</div>
-​<div
-className="relative w-full bg-white border border-slate-300 rounded-lg shadow-inner overflow-hidden select-none cursor-crosshair"
-style={{ height: '320px' }}
-onMouseDown={handleMouseDown}
-onMouseUp={handleMouseUp}
-onMouseLeave={handleMouseUp}
-onMouseMove={(e) => handleInteractionMove(e.clientX, e.currentTarget)}
-onTouchStart={(e) => {
-if(isPlaying) return;
-draggingRef.current = true;
-if(e.touches && e.touches[0]) {
-handleInteractionMove(e.touches[0].clientX, e.currentTarget);
-}
-}}
-onTouchEnd={handleMouseUp}
-onTouchMove={(e) => {
-if(isPlaying) e.preventDefault();
-const touchClientX = e.touches && e.touches[0] ? e.touches[0].clientX : (e.clientX || 0);
-handleInteractionMove(touchClientX, e.currentTarget);
-}}
->
-<svg width="100%" height="100%" viewBox={0 0 ${svgW} ${svgH}} preserveAspectRatio="xMidYMid meet">
-{showGrid && (
-<g className="text-slate-200">
-{[0,1,2,3,4,5].map(y_val => (
-<line key={y_val} x1="0" y1={originY - y_valpxPerMeter} x2={svgW} y2={originY - y_valpxPerMeter} stroke="currentColor" strokeDasharray="4,4" />
-))}
-<text x="10" y={originY - 5*pxPerMeter + 15} fontSize="12" fill="#94a3b8">5 m</text>
-<text x="10" y={originY + 15} fontSize="12" fill="#94a3b8">0 m</text>
-</g>
-)}
-​<path d={trackD} fill="none" stroke="#64748b" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-​<line x1={originX - 5pxPerMeter} y1={originY - 5pxPerMeter} x2={originX - 5pxPerMeter} y2={originY} stroke="#cbd5e1" strokeWidth="4"/>
-<line x1={originX + 5pxPerMeter} y1={originY - 5pxPerMeter} x2={originX + 5pxPerMeter} y2={originY} stroke="#cbd5e1" strokeWidth="4"/>
-<line x1="0" y1={originY} x2={svgW} y2={originY} stroke="#475569" strokeWidth="4" />
-​<g transform={translate(${skaterX}, ${skaterY})}>
-<circle cx="0" cy="-15" r="10" fill="#f59e0b" />
-<rect x="-12" y="-5" width="24" height="5" fill="#333" rx="2"/>
-{showSpeed && speedMag > 0.1 && (
-<line x1="0" y1="-15" x2={v > 0 ? 30 : -30} y2="-15" stroke="#ef4444" strokeWidth="2" markerEnd="url(#arrow-speed)" />
-)}
-</g>
-​<defs>
-<marker id="arrow-speed" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-<path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
-</marker>
-</defs>
-</svg>
-​<div className="absolute top-2 left-2 bg-white/90 p-2 rounded text-xs shadow space-y-1 w-36">
-<p>Ketinggian (h): {h.toFixed(2)} m</p>
-{showSpeed && <p>Kelajuan (v): {speedMag.toFixed(2)} m/s</p>}
-</div>
-</div>
-​<div className="flex flex-wrap gap-2 justify-center">
-<Button variant={isPlaying ? 'danger' : 'green'} onClick={() => setIsPlaying(!isPlaying)}>
-{isPlaying ? 'Pause' : 'Play'}
-</Button>
-<Button variant="outline" onClick={resetLab}>Reset</Button>
-<Button variant="secondary" onClick={stepForward}>Gerak Selangkah</Button>
-<Button variant="secondary" onClick={() => { setX(5); setV(0); setIsPlaying(false); }}>Posisi Atas</Button>
-<Button variant="secondary" onClick={() => { setX(0); setV(0); setIsPlaying(false); }}>Posisi Bawah</Button>
-</div>
-</div>
-​<div className="w-full lg:w-72 space-y-4">
-{showGraph && (
-<div className="bg-white p-3 rounded-lg border shadow-sm h-48 flex items-end justify-around pb-6 relative">
-<p className="absolute top-2 text-xs font-bold w-full text-center text-slate-500">Grafik Batang Energi (J)</p>
-​<div className="flex flex-col items-center w-1/4">
-<div className="w-full bg-blue-500 rounded-t" style={{ height: ${isNaN(ep / em) ? 0 : (ep / em) * 120}px, transition: 'height 0.1s linear' }}></div>
-<span className="text-[10px] mt-1 font-bold text-blue-700">Ep: {Math.round(ep)}J</span>
-</div>
-<div className="flex flex-col items-center w-1/4">
-<div className="w-full bg-green-500 rounded-t" style={{ height: ${isNaN(ek / em) ? 0 : (ek / em) * 120}px, transition: 'height 0.1s linear' }}></div>
-<span className="text-[10px] mt-1 font-bold text-green-700">Ek: {Math.round(ek)}J</span>
-</div>
-<div className="flex flex-col items-center w-1/4">
-<div className="w-full bg-yellow-400 rounded-t" style={{ height: 120px }}></div>
-<span className="text-[10px] mt-1 font-bold text-yellow-600">Em: {Math.round(em)}J</span>
-</div>
-</div>
-)}
-​<div className="bg-white p-3 rounded-lg border shadow-sm text-sm space-y-2">
-<label className="flex items-center gap-2">
-<input type="checkbox" checked={showGraph} onChange={e=>setShowGraph(e.target.checked)}/> Grafik Batang Energi
-</label>
-<label className="flex items-center gap-2">
-<input type="checkbox" checked={showGrid} onChange={e=>setShowGrid(e.target.checked)}/> Kisi-kisi Ketinggian
-</label>
-<label className="flex items-center gap-2">
-<input type="checkbox" checked={showSpeed} onChange={e=>setShowSpeed(e.target.checked)}/> Kelajuan
-</label>
-<label className="flex items-center gap-2 text-teal-700 font-semibold">
-<input type="checkbox" checked={autoPauseBottom} onChange={e=>setAutoPauseBottom(e.target.checked)}/> Jeda Otomatis di Titik Terendah
-</label>
-<div className="pt-2 border-t">
-<label className="block mb-1">Massa Skater (20-100 kg): {mass} kg</label>
-<input type="range" min="20" max="100" step="10" value={mass} onChange={e=>setMass(Number(e.target.value))} disabled={isPlaying} className="w-full"/>
-</div>
-</div>
-​<div className="space-y-2">
-{onRecordTop && <Button variant="orange" className="w-full text-sm" onClick={() => onRecordTop({h, v:speedMag, ep, ek, em})}>Catat Posisi Atas</Button>}
-{onRecordBottom && <Button variant="orange" className="w-full text-sm" onClick={() => onRecordBottom({h, v:speedMag, ep, ek, em})}>Catat Posisi Bawah</Button>}
-{onRecordData && <Button variant="orange" className="w-full text-sm" onClick={() => onRecordData({h, ep, ek, em})}>Catat Data Pengamatan</Button>}
-</div>
-</div>
-</div>
-);
-};
-​// --- MAIN APPLICATION COMPONENT ---
-function App() {
-const [currentView, setCurrentView] = useState('landing');
-const [groupData, setGroupData] = useLocalStorage('ipa_group_data', initialIdentity);
-const [lkm1, setLkm1] = useLocalStorage('ipa_lkm1_data', initialLKM1);
-const [lkm2, setLkm2] = useLocalStorage('ipa_lkm2_data', initialLKM2);
-​const handlePrint = () => {
-window.print();
-};
-​const calculateProgress = (dataObj) => {
-let filled = 0;
-let total = 0;
-Object.values(dataObj).forEach(val => {
-if (Array.isArray(val)) {
-val.forEach(row => {
-Object.values(row).forEach(cell => {
-total++;
-if(cell !== '') filled++;
-});
-});
-} else {
-total++;
-if (val !== '') filled++;
-}
-});
-if (total === 0) return 0;
-return Math.round((filled / total) * 100);
-};
-​const renderLanding = () => (
-<div className="min-h-screen flex items-center justify-center bg-blue-50 p-4">
-<Card className="max-w-2xl w-full text-center p-8 space-y-6">
-<div className="w-24 h-24 bg-blue-100 rounded-full mx-auto flex items-center justify-center">
-<svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-</div>
-<div>
-<h1 className="text-3xl font-bold text-slate-800 mb-2">LEMBAR KERJA MURID (LKM)</h1>
-<h2 className="text-4xl font-extrabold text-blue-600 mb-4">USAHA DAN ENERGI</h2>
-<p className="text-lg text-slate-600 font-medium">LKM Digital Interaktif Berbasis Problem Based Learning Berbantuan Virtual Lab</p>
-</div>
-​<div className="bg-slate-50 p-4 rounded-lg text-left text-sm space-y-2 text-slate-700 max-w-md mx-auto border border-slate-200">
-<p><strong>Mata Pelajaran:</strong> Ilmu Pengetahuan Alam (IPA)</p>
-<p><strong>Kelas/Semester:</strong> VIII / Ganjil</p>
-<p><strong>Materi Pokok:</strong> Usaha, Energi, dan Pesawat Sederhana</p>
-<p><strong>Submateri:</strong> Usaha dan Energi</p>
-<p><strong>Sekolah:</strong> SMP Negeri 12 Semarang</p>
-</div>
-​<Button onClick={() => setCurrentView('identity')} className="w-full py-4 text-lg mt-4 shadow-lg">
-Mulai Mengerjakan
-</Button>
-</Card>
-</div>
-);
-​const renderIdentity = () => (
-<div className="min-h-screen bg-blue-50 p-4 lg:p-8">
-<Card className="max-w-2xl mx-auto">
-<SectionHeader title="IDENTITAS KELOMPOK" subtitle="Lengkapi data berikut sebelum memulai LKM" />
-<div className="p-6 space-y-4">
-<div className="grid grid-cols-2 gap-4">
-<div>
-<label className="block text-sm font-bold text-slate-700 mb-1">Kelas</label>
-<Input value={groupData.class} onChange={v => setGroupData({...groupData, class: v})} placeholder="Contoh: VIII-A" />
-</div>
-<div>
-<label className="block text-sm font-bold text-slate-700 mb-1">Kelompok</label>
-<Input value={groupData.group} onChange={v => setGroupData({...groupData, group: v})} placeholder="Contoh: Kelompok 1" />
-</div>
-</div>
-<div>
-<label className="block text-sm font-bold text-slate-700 mb-1">Hari/Tanggal</label>
-<Input type="date" value={groupData.date} onChange={v => setGroupData({...groupData, date: v})} className="w-full" />
-</div>
-​<div>
-<label className="block text-sm font-bold text-slate-700 mb-2">Nama Anggota Kelompok</label>
-{groupData.members.map((member, i) => (
-<div key={i} className="flex items-center gap-2 mb-2">
-<span className="w-6 text-slate-500 font-bold">{i+1}.</span>
-<Input value={member} onChange={v => {
-const newMembers = [...groupData.members];
-newMembers[i] = v;
-setGroupData({...groupData, members: newMembers});
-}} placeholder={Nama Anggota ${i+1}} className="flex-1" />
-</div>
-))}
-</div>
-​<div className="pt-4 border-t flex justify-between">
-<Button variant="outline" onClick={() => setCurrentView('landing')}>Kembali</Button>
-<Button onClick={() => setCurrentView('menu')}>Simpan Identitas & Mulai LKM</Button>
-</div>
-</div>
-</Card>
-</div>
-);
-​const renderMenu = () => (
-<div className="min-h-screen bg-blue-50 p-4 lg:p-8">
-<div className="max-w-4xl mx-auto space-y-6">
-<div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-<div>
-<h2 className="font-bold text-slate-800 text-lg">Halo, {groupData.group || 'Kelompok'}!</h2>
-<p className="text-sm text-slate-500">Silakan pilih materi LKM yang akan dikerjakan.</p>
-</div>
-<Button variant="outline" onClick={() => setCurrentView('identity')}>Edit Identitas</Button>
-</div>
-​<div className="grid md:grid-cols-2 gap-6">
-<Card className="hover:shadow-lg transition-shadow border-t-4 border-t-blue-500">
-<div className="h-40 bg-blue-100 flex items-center justify-center p-4">
-<svg className="w-24 h-24 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-</div>
-<div className="p-6">
-<h3 className="text-xl font-bold text-slate-800 mb-2">LKM MATERI 1: USAHA</h3>
-<p className="text-slate-600 mb-4 text-sm min-h-[60px]">Menyelidiki kapan gaya menghasilkan usaha serta hubungan antara gaya, perpindahan, dan besarnya usaha.</p>
-<div className="flex justify-between items-center">
-<span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Progres: {calculateProgress(lkm1)}%</span>
-<Button onClick={() => setCurrentView('lkm1')}>Buka LKM Usaha</Button>
-</div>
-</div>
-</Card>
-​<Card className="hover:shadow-lg transition-shadow border-t-4 border-t-teal-500">
-<div className="h-40 bg-teal-100 flex items-center justify-center p-4">
-<svg className="w-24 h-24 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-</div>
-<div className="p-6">
-<h3 className="text-xl font-bold text-slate-800 mb-2">LKM MATERI 2: ENERGI</h3>
-<p className="text-slate-600 mb-4 text-sm min-h-[60px]">Menyelidiki perubahan energi potensial dan energi kinetik serta hukum kekekalan energi mekanik.</p>
-<div className="flex justify-between items-center">
-<span className="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded">Progres: {calculateProgress(lkm2)}%</span>
-<Button variant="green" onClick={() => setCurrentView('lkm2')}>Buka LKM Energi</Button>
-</div>
-</div>
-</Card>
-</div>
-</div>
-</div>
-);
-​const renderLKM1 = () => (
-<div className="min-h-screen bg-white text-slate-800 print:bg-white pb-20">
-<div className="sticky top-0 z-50 bg-white border-b shadow-sm p-4 flex justify-between items-center print:hidden">
-<Button variant="outline" onClick={() => setCurrentView('menu')}>← Menu Utama</Button>
-<div className="flex gap-2">
-<Button variant="secondary" onClick={() => {
-if(window.confirm('Yakin ingin mereset jawaban LKM ini?')) setLkm1(initialLKM1);
-}}>Reset Jawaban</Button>
-<Button onClick={handlePrint}>Unduh PDF</Button>
-</div>
-</div>
-​<div className="max-w-4xl mx-auto p-6 space-y-8 print:p-0 print:max-w-none">
-<div className="text-center space-y-2 border-b-2 border-slate-800 pb-6 print:pb-2">
-<h1 className="text-2xl font-bold">LEMBAR KERJA MURID (LKM)</h1>
-<h2 className="text-xl font-bold bg-blue-100 inline-block px-4 py-1 rounded">MATERI 1: KONSEP USAHA</h2>
-</div>
-​<Card className="print:shadow-none print:border-black">
-<div className="p-4 bg-slate-50 flex flex-wrap gap-4 text-sm print:bg-white">
-<div className="w-full md:w-auto"><span className="font-bold">Kelas:</span> {groupData.class}</div>
-<div className="w-full md:w-auto"><span className="font-bold">Kelompok:</span> {groupData.group}</div>
-<div className="w-full md:w-auto"><span className="font-bold">Tanggal:</span> {groupData.date}</div>
-<div className="w-full"><span className="font-bold">Anggota:</span> {groupData.members.filter(m=>m).join(', ')}</div>
-</div>
-</Card>
-​<div className="grid md:grid-cols-2 gap-6 print:block print:space-y-4">
-<div>
-<h3 className="font-bold text-lg text-blue-800 mb-2 border-b">A. TUJUAN PEMBELAJARAN</h3>
-<ol className="list-decimal pl-5 text-sm space-y-1">
-<li>Menjelaskan konsep usaha dalam fisika berdasarkan hasil pengamatan pada simulasi virtual.</li>
-<li>Menganalisis hubungan antara gaya, perpindahan, dan besarnya usaha.</li>
-<li>Memecahkan permasalahan usaha dalam kehidupan sehari-hari berdasarkan hasil penyelidikan.</li>
-</ol>
-</div>
-<div>
-<h3 className="font-bold text-lg text-blue-800 mb-2 border-b">B. PETUNJUK PENGGUNAAN LKM</h3>
-<ol className="list-decimal pl-5 text-sm space-y-1">
-<li>Kerjakan LKM bersama kelompok yang terdiri atas 4–5 murid.</li>
-<li>Bacalah permasalahan dan petunjuk kegiatan dengan saksama.</li>
-<li>Gunakan virtual lab yang tersedia untuk melakukan eksperimen.</li>
-<li>Tuliskan jawaban berdasarkan hasil pengamatan dan diskusi kelompok.</li>
-</ol>
-</div>
-</div>
-​<Card className="border-l-4 border-l-orange-500 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 1: ORIENTASI MURID PADA MASALAH" colorClass="bg-orange-100 text-orange-800" />
-<div className="p-4 space-y-4">
-<h3 className="font-bold text-lg">Masalah: Memindahkan Lemari Es ke Atas Truk</h3>
-​<div className="grid md:grid-cols-2 gap-4">
-<div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-center">
-<div className="w-full h-48 bg-white border border-slate-300 rounded-lg shadow-inner mb-3 overflow-hidden relative flex items-center justify-center">
-<svg className="w-full h-full" viewBox="0 0 300 160" preserveAspectRatio="xMidYMid meet">
-<line x1="0" y1="135" x2="300" y2="135" stroke="#475569" strokeWidth="4" />
-<rect x="0" y="135" width="300" height="25" fill="#334155" />
-<rect x="210" y="65" width="80" height="70" fill="#64748b" stroke="#1e293b" strokeWidth="2" />
-<rect x="220" y="75" width="40" height="50" fill="#cbd5e1" />
-<circle cx="250" cy="135" r="12" fill="#0f172a" />
-<rect x="110" y="50" width="45" height="85" fill="#94a3b8" stroke="#334155" strokeWidth="2" rx="4" />
-<line x1="110" y1="75" x2="155" y2="75" stroke="#475569" strokeWidth="2" />
-<g transform="translate(75, 45)">
-<circle cx="15" cy="15" r="10" fill="#f59e0b" />
-<line x1="15" y1="25" x2="15" y2="65" stroke="#f59e0b" strokeWidth="5" strokeLinecap="round" />
-<line x1="15" y1="35" x2="35" y2="35" stroke="#f59e0b" strokeWidth="4" strokeLinecap="round" />
-<line x1="15" y1="65" x2="5" y2="90" stroke="#f59e0b" strokeWidth="4" strokeLinecap="round" />
-<line x1="15" y1="65" x2="25" y2="90" stroke="#f59e0b" strokeWidth="4" strokeLinecap="round" />
-<path d="M 28 8 Q 32 3 36 8 Q 36 13 28 13 Z" fill="#3b82f6" />
-</g>
-<rect x="75" y="15" width="150" height="26" fill="#ef4444" rx="4" />
-<text x="150" y="32" fontSize="11" fill="#ffffff" fontWeight="bold" textAnchor="middle">TIDAK BERGERAK (W = 0 J)</text>
-</svg>
-</div>
-<p className="text-xs font-semibold text-slate-700">Ilustrasi 1: Budi mendorong lemari es secara langsung di lantai. Lemari tidak bergerak karena berat dan gesekan.</p>
-</div>
-​<div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-center">
-<div className="w-full h-48 bg-white border border-slate-300 rounded-lg shadow-inner mb-3 overflow-hidden relative flex items-center justify-center">
-<svg className="w-full h-full" viewBox="0 0 300 160" preserveAspectRatio="xMidYMid meet">
-<line x1="0" y1="135" x2="300" y2="135" stroke="#475569" strokeWidth="4" />
-<rect x="0" y="135" width="300" height="25" fill="#334155" />
-<rect x="210" y="65" width="80" height="70" fill="#64748b" stroke="#1e293b" strokeWidth="2" />
-<circle cx="250" cy="135" r="12" fill="#0f172a" />
-<polygon points="80,135 210,135 210,65" fill="#b45309" opacity="0.2" />
-<line x1="80" y1="135" x2="210" y2="65" stroke="#d97706" strokeWidth="6" strokeLinecap="round" />
-<g transform="translate(130, 92) rotate(-28)">
-<rect x="0" y="0" width="35" height="60" fill="#94a3b8" stroke="#334155" strokeWidth="2" rx="3" />
-<line x1="0" y1="20" x2="35" y2="20" stroke="#475569" strokeWidth="2" />
-</g>
-<g transform="translate(100, 80)">
-<circle cx="12" cy="12" r="9" fill="#10b981" />
-<line x1="12" y1="21" x2="15" y2="52" stroke="#10b981" strokeWidth="4" strokeLinecap="round" />
-<line x1="12" y1="30" x2="30" y2="25" stroke="#10b981" strokeWidth="4" strokeLinecap="round" />
-<line x1="15" y1="52" x2="5" y2="55" stroke="#10b981" strokeWidth="3" />
-<line x1="15" y1="52" x2="22" y2="55" stroke="#10b981" strokeWidth="3" />
-</g>
-<rect x="65" y="15" width="170" height="26" fill="#10b981" rx="4" />
-<text x="150" y="32" fontSize="11" fill="#ffffff" fontWeight="bold" textAnchor="middle">BERHASIL MASUK TRUK!</text>
-</svg>
-</div>
-<p className="text-xs font-semibold text-slate-700">Ilustrasi 2: Andi menggunakan papan kayu sebagai bidang miring. Lemari es berhasil dipindahkan dengan lebih mudah.</p>
-</div>
-</div>
-​<p className="text-justify text-sm bg-orange-50 p-3 rounded">
-Budi dan Andi mendapat tugas untuk memindahkan sebuah lemari es yang sangat berat dari teras rumah ke dalam truk pickup. Budi mencoba mendorong lemari es secara langsung. Meskipun sudah mendorong sekuat tenaga hingga berkeringat, lemari es tersebut tidak bergerak sama sekali. Andi kemudian mengambil papan kayu panjang dan meletakkannya dari tanah menuju bak truk sehingga membentuk bidang miring. Andi mendorong lemari es melalui papan tersebut hingga berhasil masuk ke dalam truk.
-</p>
-​<div className="bg-orange-100 border border-orange-300 p-4 rounded-lg">
-<h4 className="font-bold text-orange-800 mb-2">PERTANYAAN PEMANTIK</h4>
-<p className="text-sm mb-4">Menurut pemahaman kalian sehari-hari, siapakah yang melakukan usaha paling besar? Budi yang mendorong sekuat tenaga tetapi gagal, atau Andi yang berhasil memindahkan lemari es? Apakah usaha dalam fisika sama dengan kerja keras dalam kehidupan sehari-hari?</p>
-<label className="block text-sm font-bold text-slate-700 mb-1">Hipotesis Awal Kelompok:</label>
-<TextArea value={lkm1.hypothesis} onChange={v => setLkm1({...lkm1, hypothesis: v})} placeholder="Tuliskan dugaan awal kelompok kalian di sini..." />
-</div>
-</div>
-</Card>
-​<Card className="border-l-4 border-l-blue-500 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 2: MENGORGANISASIKAN MURID UNTUK BELAJAR" colorClass="bg-blue-100 text-blue-800" />
-<div className="p-4 text-sm space-y-2">
-<p>Untuk membuktikan hipotesis kelompok kalian, lakukan penyelidikan menggunakan virtual lab yang tersedia. Kalian akan mengamati bagaimana gaya dorong dan perpindahan memengaruhi usaha yang dilakukan terhadap suatu benda.</p>
-</div>
-</Card>
-​<Card className="border-l-4 border-l-teal-500 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 3: MEMBIMBING PENYELIDIKAN" colorClass="bg-teal-100 text-teal-800" />
-<div className="p-4 space-y-8">
-<div>
-<h3 className="font-bold text-lg mb-4 text-teal-700 border-b-2 border-teal-200 pb-2">EKSPERIMEN 1: KAPAN SEBUAH DORONGAN DISEBUT USAHA?</h3>
-<div className="grid lg:grid-cols-2 gap-6">
-<div>
-<div className="bg-teal-50 p-3 rounded-lg mb-4 text-sm border border-teal-200">
-<h4 className="font-bold mb-1">Langkah Percobaan:</h4>
-<ol className="list-decimal pl-5 space-y-1">
-<li>Gunakan mode <strong>Eksplorasi Bebas</strong>.</li>
-<li>Pilih permukaan <strong>Kasar</strong>.</li>
-<li>Atur gaya dorong <strong>100 N</strong>. Tekan Play. Amati apakah lemari bergerak dan nilai usahanya.</li>
-<li>Tekan Reset. Naikkan gaya dorong menjadi <strong>400 N</strong>. Tekan Play. Amati perubahan posisi dan nilai usahanya.</li>
-</ol>
-</div>
-​<div className="space-y-4">
-<div>
-<label className="block text-sm font-bold mb-1">Apakah lemari arsip bergerak ketika diberikan gaya 100 N? Apakah terdapat nilai usaha yang dihasilkan?</label>
-<TextArea value={lkm1.exp1_q1} onChange={v => setLkm1({...lkm1, exp1_q1: v})} rows={2} />
-</div>
-<div>
-<label className="block text-sm font-bold mb-1">Ketika lemari mulai mengalami perpindahan, apa yang terjadi pada nilai usaha?</label>
-<TextArea value={lkm1.exp1_q2} onChange={v => setLkm1({...lkm1, exp1_q2: v})} rows={2} />
-</div>
-</div>
-</div>
-<div>
-<LabUsaha mode="free" />
-</div>
-</div>
-​<div className="bg-slate-100 p-4 rounded-lg mt-6 border border-slate-300">
-<h4 className="font-bold mb-2">Analisis Eksperimen 1</h4>
-<p className="text-sm leading-8">
-Agar suatu gaya dapat menghasilkan usaha dalam fisika, benda harus mengalami
-<Input value={lkm1.exp1_kesimpulan1} onChange={v=>setLkm1({...lkm1, exp1_kesimpulan1: v})} className="mx-2 w-32 inline-block border-b-2 border-black rounded-none bg-transparent" />.
-Jika benda tidak bergerak meskipun diberikan gaya yang besar, maka usaha oleh gaya tersebut adalah
-<Input value={lkm1.exp1_kesimpulan2} onChange={v=>setLkm1({...lkm1, exp1_kesimpulan2: v})} className="mx-2 w-20 inline-block border-b-2 border-black rounded-none bg-transparent" /> Joule.
-</p>
-</div>
-</div>
-</div>
-</Card>
-​<Card className="border-l-4 border-l-purple-500 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 4: MENGEMBANGKAN DAN MENYAJIKAN" colorClass="bg-purple-100 text-purple-800" />
-<div className="p-4 space-y-4">
-<h4 className="font-bold mb-2">Pertanyaan Analisis (Berdasarkan masalah Budi dan Andi)</h4>
-<div>
-<label className="block text-sm font-bold mb-2">1. Budi mendorong lemari es sekuat tenaga, tetapi lemari es tidak bergerak. Berapa usaha dalam fisika yang dilakukan Budi?</label>
-<TextArea value={lkm1.analysis1} onChange={v=>setLkm1({...lkm1, analysis1: v})} rows={4} />
-</div>
-<div>
-<label className="block text-sm font-bold mb-2">2. Andi berhasil memindahkan lemari es ke atas truk. Apakah Andi melakukan usaha?</label>
-<TextArea value={lkm1.analysis2} onChange={v=>setLkm1({...lkm1, analysis2: v})} rows={4} />
-</div>
-</div>
-</Card>
-​<Card className="border-l-4 border-l-blue-800 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 5: MENGANALISIS DAN MENGEVALUASI" colorClass="bg-slate-800 text-white" />
-<div className="p-4 space-y-4">
-<h4 className="font-bold mb-2 text-lg">Kesimpulan Hari Ini</h4>
-<div className="space-y-3">
-<div className="flex gap-2 items-start"><span className="font-bold mt-2">1.</span><TextArea value={lkm1.final_kesimpulan1} onChange={v=>setLkm1({...lkm1, final_kesimpulan1: v})} rows={2} /></div>
-<div className="flex gap-2 items-start"><span className="font-bold mt-2">2.</span><TextArea value={lkm1.final_kesimpulan2} onChange={v=>setLkm1({...lkm1, final_kesimpulan2: v})} rows={2} /></div>
-<div className="flex gap-2 items-start"><span className="font-bold mt-2">3.</span><TextArea value={lkm1.final_kesimpulan3} onChange={v=>setLkm1({...lkm1, final_kesimpulan3: v})} rows={2} /></div>
-</div>
-</div>
-</Card>
-​<div className="flex justify-end gap-4 py-8 print:hidden">
-<Button onClick={() => setCurrentView('menu')} className="px-8 py-3 text-lg">Simpan LKM Usaha & Kembali</Button>
-</div>
-</div>
-</div>
-);
-​const renderLKM2 = () => (
-<div className="min-h-screen bg-white text-slate-800 print:bg-white pb-20">
-<div className="sticky top-0 z-50 bg-white border-b shadow-sm p-4 flex justify-between items-center print:hidden">
-<Button variant="outline" onClick={() => setCurrentView('menu')}>← Menu Utama</Button>
-<div className="flex gap-2">
-<Button variant="secondary" onClick={() => {
-if(window.confirm('Yakin ingin mereset jawaban LKM ini?')) setLkm2(initialLKM2);
-}}>Reset Jawaban</Button>
-<Button variant="green" onClick={handlePrint}>Unduh PDF</Button>
-</div>
-</div>
-​<div className="max-w-4xl mx-auto p-6 space-y-8 print:p-0 print:max-w-none">
-<div className="text-center space-y-2 border-b-2 border-slate-800 pb-6 print:pb-2">
-<h1 className="text-2xl font-bold">LEMBAR KERJA MURID (LKM)</h1>
-<h2 className="text-xl font-bold bg-teal-100 inline-block px-4 py-1 rounded text-teal-800">MATERI 2: ENERGI</h2>
-</div>
-​<Card className="print:shadow-none print:border-black">
-<div className="p-4 bg-slate-50 flex flex-wrap gap-4 text-sm print:bg-white">
-<div className="w-full md:w-auto"><span className="font-bold">Kelas:</span> {groupData.class}</div>
-<div className="w-full md:w-auto"><span className="font-bold">Kelompok:</span> {groupData.group}</div>
-<div className="w-full"><span className="font-bold">Anggota:</span> {groupData.members.filter(m=>m).join(', ')}</div>
-</div>
-</Card>
-​<div className="grid md:grid-cols-2 gap-6 print:block print:space-y-4">
-<div>
-<h3 className="font-bold text-lg text-teal-800 mb-2 border-b">A. TUJUAN PEMBELAJARAN</h3>
-<ol className="list-decimal pl-5 text-sm space-y-1">
-<li>Menjelaskan konsep energi potensial dan energi kinetik berdasarkan hasil pengamatan virtual lab.</li>
-<li>Menganalisis perubahan energi potensial dan energi kinetik pada benda yang bergerak.</li>
-<li>Membuktikan hukum kekekalan energi mekanik melalui eksperimen virtual.</li>
-<li>Memecahkan permasalahan energi dalam kehidupan sehari-hari.</li>
-</ol>
-</div>
-<div>
-<h3 className="font-bold text-lg text-teal-800 mb-2 border-b">B. PETUNJUK PENGGUNAAN LKM</h3>
-<ol className="list-decimal pl-5 text-sm space-y-1">
-<li>Kerjakan LKM bersama anggota kelompok.</li>
-<li>Bacalah ilustrasi permasalahan dengan saksama.</li>
-<li>Gunakan virtual lab skater untuk melakukan penyelidikan.</li>
-<li>Amati perubahan ketinggian, kelajuan, dan grafik energi.</li>
-<li>Catat data pengamatan pada tabel yang tersedia.</li>
-<li>Diskusikan jawaban dan susun kesimpulan berdasarkan hasil eksperimen.</li>
-</ol>
-</div>
-</div>
-​<Card className="border-l-4 border-l-orange-500 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 1: ORIENTASI MURID PADA MASALAH" colorClass="bg-orange-100 text-orange-800" />
-<div className="p-4 space-y-4">
-<h3 className="font-bold text-lg">Masalah: Gerak Skateboard di Lintasan U</h3>
-<p className="text-justify text-sm bg-orange-50 p-3 rounded">
-Dika sedang bermain skateboard pada lintasan berbentuk huruf U (halfpipe). Saat berada di ujung paling atas lintasan, Dika melepaskan diri tanpa mendorong tanah. Ketika meluncur turun, kelajuannya semakin cepat hingga mencapai bagian paling bawah lintasan. Namun, ketika bergerak naik ke sisi seberangnya, kelajuannya semakin melambat hingga berhenti sejenak di ujung atas lintasan, kemudian kembali meluncur turun.
-</p>
-<div className="bg-orange-100 border border-orange-300 p-4 rounded-lg">
-<h4 className="font-bold text-orange-800 mb-2">PERTANYAAN PEMANTIK</h4>
-<p className="text-sm mb-4">Mengapa kelajuan Dika berubah-ubah ketika bergerak pada lintasan? Dari mana energi Dika untuk naik kembali ke sisi seberangnya tanpa mendorong tanah?</p>
-<label className="block text-sm font-bold text-slate-700 mb-1">Hipotesis Awal Kelompok:</label>
-<TextArea value={lkm2.hypothesis} onChange={v => setLkm2({...lkm2, hypothesis: v})} placeholder="Tuliskan dugaan awal..." />
-</div>
-</div>
-</Card>
-​<Card className="border-l-4 border-l-blue-500 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 2: MENGORGANISASIKAN MURID UNTUK BELAJAR" colorClass="bg-blue-100 text-blue-800" />
-<div className="p-4 text-sm space-y-2">
-<p>Untuk memahami perubahan energi selama Dika bergerak, lakukan penyelidikan menggunakan virtual lab Energi di bawah. Kalian akan mengamati perubahan energi potensial, energi kinetik, dan energi mekanik pada berbagai posisi skater.</p>
-</div>
-</Card>
-​<Card className="border-l-4 border-l-teal-500 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 3: MEMBIMBING PENYELIDIKAN" colorClass="bg-teal-100 text-teal-800" />
-<div className="p-4 space-y-8">
-<div className="bg-slate-50 p-2 rounded-lg border-2 border-teal-200">
-<LabEnergi
-onRecordTop={(data) => {
-setLkm2(prev => ({...prev,
-exp1_table_atas_h: data.h.toFixed(1),
-exp1_table_atas_v: data.v.toFixed(1),
-exp1_table_atas_ep: Math.round(data.ep),
-exp1_table_atas_ek: Math.round(data.ek),
-exp1_table_atas_em: Math.round(data.em)
-}));
-}}
-onRecordBottom={(data) => {
-setLkm2(prev => ({...prev,
-exp1_table_bawah_h: data.h.toFixed(1),
-exp1_table_bawah_v: data.v.toFixed(1),
-exp1_table_bawah_ep: Math.round(data.ep),
-exp1_table_bawah_ek: Math.round(data.ek),
-exp1_table_bawah_em: Math.round(data.em)
-}));
-}}
-onRecordData={(data) => {
-alert("Data pengamatan energi berhasil dicatat!");
-}}
-/>
-</div>
-​<div>
-<h3 className="font-bold text-lg mb-4 text-teal-700">EKSPERIMEN 1: MENGENAL ENERGI POTENSIAL DAN KINETIK</h3>
-<div className="grid lg:grid-cols-2 gap-6 mb-6">
-<div className="space-y-4 text-sm">
-<p className="font-bold">Langkah Percobaan:</p>
-<ol className="list-decimal pl-5 space-y-2">
-<li>Letakkan skater tepat di ujung paling atas lintasan U (posisi 5 m).</li>
-<li>Tekan Pause untuk mengamati posisi awal. Amati grafik batang energi dan kelajuan.</li>
-</ol>
-<div>
-<label className="block font-bold mb-1">"Energi apa yang diagram batangnya paling tinggi ketika skater berada di atas? Berapa kelajuan skater saat itu?"</label>
-<TextArea value={lkm2.exp1_q1} onChange={v=>setLkm2({...lkm2, exp1_q1: v})} rows={2} />
-</div>
-<ol start="3" className="list-decimal pl-5 space-y-2">
-<li>Tekan Play untuk menjalankan simulasi, lalu hentikan (Pause) saat skater berada di titik paling bawah.</li>
-</ol>
-<div>
-<label className="block font-bold mb-1">"Energi apa yang diagram batangnya paling tinggi ketika skater berada di bawah? Apa yang terjadi pada energi potensial dan kelajuan skater?"</label>
-<TextArea value={lkm2.exp1_q2} onChange={v=>setLkm2({...lkm2, exp1_q2: v})} rows={2} />
-</div>
-</div>
-<div className="space-y-4">
-<p className="font-bold text-sm">Tabel Pengamatan Eksperimen 1:</p>
-<table className="w-full text-sm text-center border-collapse">
-<thead>
-<tr className="bg-teal-100">
-<th className="border p-2">Posisi</th>
-<th className="border p-2">h (m)</th>
-<th className="border p-2">v (m/s)</th>
-<th className="border p-2 text-blue-700">Ep (J)</th>
-<th className="border p-2 text-green-700">Ek (J)</th>
-<th className="border p-2 text-yellow-600">Em (J)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td className="border p-2 font-bold bg-slate-50">Paling atas</td>
-<td className="border p-2">{lkm2.exp1_table_atas_h}</td>
-<td className="border p-2">{lkm2.exp1_table_atas_v}</td>
-<td className="border p-2">{lkm2.exp1_table_atas_ep}</td>
-<td className="border p-2">{lkm2.exp1_table_atas_ek}</td>
-<td className="border p-2">{lkm2.exp1_table_atas_em}</td>
-</tr>
-<tr>
-<td className="border p-2 font-bold bg-slate-50">Paling bawah</td>
-<td className="border p-2">{lkm2.exp1_table_bawah_h}</td>
-<td className="border p-2">{lkm2.exp1_table_bawah_v}</td>
-<td className="border p-2">{lkm2.exp1_table_bawah_ep}</td>
-<td className="border p-2">{lkm2.exp1_table_bawah_ek}</td>
-<td className="border p-2">{lkm2.exp1_table_bawah_em}</td>
-</tr>
-</tbody>
-</table>
-<p className="text-xs text-slate-500 italic">*Gunakan tombol "Catat Posisi Atas" dan "Catat Posisi Bawah" pada panel lab di atas.</p>
-</div>
-</div>
-​<div className="bg-slate-100 p-4 rounded-lg mt-4 text-sm space-y-4">
-<h4 className="font-bold">Analisis Eksperimen 1</h4>
-<p className="leading-8">
-1. Energi Potensial paling besar terjadi ketika skater berada pada posisi paling
-<select value={lkm2.exp1_kesimpulan1_dropdown} onChange={e=>setLkm2({...lkm2, exp1_kesimpulan1_dropdown: e.target.value})} className="mx-2 p-1 border rounded"><option value=""></option><option value="tinggi">tinggi</option><option value="rendah">rendah</option></select>
-sehingga Energi Potensial sangat dipengaruhi oleh
-<Input value={lkm2.exp1_kesimpulan1} onChange={v=>setLkm2({...lkm2, exp1_kesimpulan1: v})} className="mx-2 w-48 inline-block border-b-2 border-black rounded-none bg-transparent" placeholder="faktor utama..." />.
-</p>
-<p className="leading-8">
-2. Energi Kinetik paling besar terjadi ketika skater meluncur paling
-<select value={lkm2.exp1_kesimpulan2_dropdown} onChange={e=>setLkm2({...lkm2, exp1_kesimpulan2_dropdown: e.target.value})} className="mx-2 p-1 border rounded"><option value=""></option><option value="cepat">cepat</option><option value="lambat">lambat</option></select>
-di dasar lintasan, sehingga Energi Kinetik sangat dipengaruhi oleh
-<Input value={lkm2.exp1_kesimpulan2} onChange={v=>setLkm2({...lkm2, exp1_kesimpulan2: v})} className="mx-2 w-48 inline-block border-b-2 border-black rounded-none bg-transparent" placeholder="faktor utama..." />.
-</p>
-</div>
-</div>
-​<div className="pt-6 border-t-2 border-dashed border-slate-300">
-<h3 className="font-bold text-lg mb-4 text-teal-700">EKSPERIMEN 2: MENGUJI HUKUM KEKEKALAN ENERGI MEKANIK</h3>
-<p className="text-sm mb-4">Letakkan skater pada ujung atas lintasan U. Tekan Play dan biarkan skater bergerak bolak-balik. Amati grafik batang Energi Total dan bandingkan energi pada berbagai posisi.</p>
-​<div className="grid lg:grid-cols-2 gap-6">
-<div>
-<table className="w-full text-sm text-center border-collapse">
-<thead>
-<tr className="bg-teal-100">
-<th className="border p-2">Posisi</th>
-<th className="border p-2">Ep (J)</th>
-<th className="border p-2">Ek (J)</th>
-<th className="border p-2">Em (J)</th>
-</tr>
-</thead>
-<tbody>
-{lkm2.exp2_table.map((row, idx) => (
-<tr key={idx}>
-<td className="border p-2 text-left bg-slate-50">{row.pos}</td>
-<td className="border p-1"><Input className="w-full text-center" value={row.ep} onChange={v=>{let t=[...lkm2.exp2_table]; t[idx].ep=v; setLkm2({...lkm2, exp2_table:t})}} placeholder="Ep"/></td>
-<td className="border p-1"><Input className="w-full text-center" value={row.ek} onChange={v=>{let t=[...lkm2.exp2_table]; t[idx].ek=v; setLkm2({...lkm2, exp2_table:t})}} placeholder="Ek"/></td>
-<td className="border p-1"><Input className="w-full text-center font-bold text-yellow-700" value={row.em} onChange={v=>{let t=[...lkm2.exp2_table]; t[idx].em=v; setLkm2({...lkm2, exp2_table:t})}} placeholder="Em"/></td>
-</tr>
-))}
-</tbody>
-</table>
-</div>
-<div className="space-y-4 text-sm">
-<div>
-<label className="block font-bold mb-1">1. Saat Energi Potensial naik, apa yang terjadi pada Energi Kinetik?</label>
-<TextArea value={lkm2.exp2_q1} onChange={v=>setLkm2({...lkm2, exp2_q1: v})} rows={2} />
-</div>
-<div>
-<label className="block font-bold mb-1">2. Apakah batang Energi Total pernah berubah tinggi saat skater bergerak bolak-balik?</label>
-<TextArea value={lkm2.exp2_q2} onChange={v=>setLkm2({...lkm2, exp2_q2: v})} rows={2} />
-</div>
-<div>
-<label className="block font-bold mb-1">3. Mengapa skater dapat naik kembali ke sisi seberang tanpa memberikan dorongan tambahan?</label>
-<TextArea value={lkm2.exp2_q3} onChange={v=>setLkm2({...lkm2, exp2_q3: v})} rows={2} />
-</div>
-</div>
-</div>
-​<div className="bg-slate-100 p-4 rounded-lg mt-6 border border-slate-300">
-<h4 className="font-bold mb-2">Kesimpulan Eksperimen 2</h4>
-<p className="text-sm leading-8">
-"Energi tidak dapat diciptakan dan tidak dapat dimusnahkan, energi hanya dapat
-<Input value={lkm2.exp2_kesimpulan1} onChange={v=>setLkm2({...lkm2, exp2_kesimpulan1: v})} className="mx-2 w-32 inline-block border-b-2 border-black rounded-none bg-transparent" placeholder="berubah..." />
-dari satu bentuk ke bentuk lainnya."
+<script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
 
+    // --- STYLING CONSTANTS ---
+    const COLORS = {
+      primary: 'bg-slate-800 text-white', 
+      secondary: 'bg-blue-50', 
+      accentGreen: 'bg-teal-500 text-white', 
+      accentOrange: 'bg-orange-500 text-white', 
+      surface: 'bg-white',
+      border: 'border-slate-200',
+    };
 
-"Dalam kasus skater ini, saat meluncur turun, Energi
-<Input value={lkm2.exp2_kesimpulan2} onChange={v=>setLkm2({...lkm2, exp2_kesimpulan2: v})} className="mx-2 w-28 inline-block border-b-2 border-black rounded-none bg-transparent" placeholder="potensial" />
-berubah menjadi Energi
-<Input value={lkm2.exp2_kesimpulan3} onChange={v=>setLkm2({...lkm2, exp2_kesimpulan3: v})} className="mx-2 w-28 inline-block border-b-2 border-black rounded-none bg-transparent" placeholder="kinetik" />.
-Jumlah energi mekanik akan selalu
-<Input value={lkm2.exp2_kesimpulan4} onChange={v=>setLkm2({...lkm2, exp2_kesimpulan4: v})} className="mx-2 w-28 inline-block border-b-2 border-black rounded-none bg-transparent font-bold" placeholder="tetap" />
-selama tidak ada gesekan."
-</p>
-</div>
-</div>
-</div>
-</Card>
-​<Card className="border-l-4 border-l-purple-500 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 4: MENGEMBANGKAN DAN MENYAJIKAN" colorClass="bg-purple-100 text-purple-800" />
-<div className="p-4 space-y-4">
-<h4 className="font-bold mb-2">Pertanyaan Analisis (Berdasarkan Permasalahan Dika)</h4>
-<div>
-<label className="block text-sm font-bold mb-2">1. Jelaskan mengapa Dika meluncur sangat cepat di dasar lintasan, tetapi melambat saat bergerak naik. Gunakan konsep Energi Potensial dan Energi Kinetik dalam jawaban kalian!</label>
-<TextArea value={lkm2.analysis1} onChange={v=>setLkm2({...lkm2, analysis1: v})} rows={4} />
-</div>
-<div>
-<label className="block text-sm font-bold mb-2">2. Dari mana Dika mendapatkan energi untuk naik kembali ke ujung lintasan seberangnya tanpa mendorong tanah?</label>
-<TextArea value={lkm2.analysis2} onChange={v=>setLkm2({...lkm2, analysis2: v})} rows={4} />
-</div>
-<div className="bg-purple-50 p-3 rounded text-sm text-purple-800">
-Diskusikan hasil penyelidikan bersama kelompok kalian. Siapkan perwakilan kelompok untuk mempresentasikan hasil diskusi di depan kelas.
-</div>
-</div>
-</Card>
-​<Card className="border-l-4 border-l-teal-800 print:shadow-none print:border-black">
-<SectionHeader title="TAHAP 5: MENGANALISIS DAN MENGEVALUASI" colorClass="bg-teal-800 text-white" />
-<div className="p-4 space-y-4">
-<h4 className="font-bold mb-2 text-lg">Kesimpulan Hari Ini</h4>
-<div className="space-y-4 text-sm">
-<div>
-<label className="block font-bold mb-1">1. Energi Potensial adalah energi yang dimiliki benda karena...</label>
-<TextArea value={lkm2.final_kesimpulan1} onChange={v=>setLkm2({...lkm2, final_kesimpulan1: v})} rows={2} />
-</div>
-<div>
-<label className="block font-bold mb-1">2. Energi Kinetik adalah energi yang dimiliki benda karena...</label>
-<TextArea value={lkm2.final_kesimpulan2} onChange={v=>setLkm2({...lkm2, final_kesimpulan2: v})} rows={2} />
-</div>
-<div>
-<label className="block font-bold mb-1">3. Hukum Kekekalan Energi Mekanik menyatakan bahwa...</label>
-<TextArea value={lkm2.final_kesimpulan3} onChange={v=>setLkm2({...lkm2, final_kesimpulan3: v})} rows={2} />
-</div>
-</div>
-</div>
-</Card>
-​<div className="flex justify-end gap-4 py-8 print:hidden">
-<Button variant="green" onClick={() => setCurrentView('menu')} className="px-8 py-3 text-lg">Simpan LKM Energi & Kembali</Button>
-</div>
-</div>
-</div>
-);
-​return (
-<div className="font-sans min-h-screen text-slate-800 bg-slate-100">
-{currentView === 'landing' && renderLanding()}
-{currentView === 'identity' && renderIdentity()}
-{currentView === 'menu' && renderMenu()}
-{currentView === 'lkm1' && renderLKM1()}
-{currentView === 'lkm2' && renderLKM2()}
-</div>
-);
-}
-​// Render to DOM
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
-</script>
-</body>
-</html>
+    // --- HELPER COMPONENTS ---
+    const Card = ({ children, className = '' }) => (
+      <div className={`bg-white rounded-xl shadow-md border ${COLORS.border} overflow-hidden ${className}`}>
+        {children}
+      </div>
+    );
+
+    const Button = ({ onClick, children, variant = 'primary', className = '', disabled = false }) => {
+      const variants = {
+        primary: 'bg-slate-800 hover:bg-slate-700 text-white',
+        secondary: 'bg-blue-100 hover:bg-blue-200 text-slate-800',
+        green: 'bg-teal-600 hover:bg-teal-700 text-white',
+        orange: 'bg-orange-500 hover:bg-orange-600 text-white',
+        danger: 'bg-red-500 hover:bg-red-600 text-white',
+        outline: 'border-2 border-slate-800 text-slate-800 hover:bg-slate-50',
+      };
+      return (
+        <button
+          onClick={onClick}
+          disabled={disabled}
+          className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+        >
+          {children}
+        </button>
+      );
+    };
+
+    const SectionHeader = ({ title, subtitle, colorClass = COLORS.primary }) => (
+      <div className={`${colorClass} p-4 rounded-t-xl mb-4 print:bg-white print:text-black print:border-b-2 print:border-black`}>
+        <h2 className="text-xl font-bold">{title}</h2>
+        {subtitle ? <p className="text-sm opacity-90">{subtitle}</p> : null}
+      </div>
+    );
+
+    const TextArea = ({ value, onChange, placeholder, rows = 4 }) => (
+      <textarea
+        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y print:border-none print:resize-none"
+        rows={rows}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    );
+
+    const Input = ({ value, onChange, placeholder, type = 'text', className = '' }) => (
+      <input
+        type={type}
+        className={`p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${className} print:border-none`}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    );
+
+    // --- LOCAL STORAGE HOOK ---
+    const useLocalStorage = (key, initialValue) => {
+      const [storedValue, setStoredValue] = useState(() => {
+        try {
+          const item = window.localStorage.getItem(key);
+          return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+          console.error(error);
+          return initialValue;
+        }
+      });
+
+      const setValue = (value) => {
+        try {
+          const valueToStore = value instanceof Function ? value(storedValue) : value;
+          setStoredValue(valueToStore);
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch (error) {
+          console.error(error);
+        }
+      };
+
+      return [storedValue, setValue];
+    };
+
+    const initialIdentity = { class: '', group: '', date: '', members: ['', '', '', '', ''] };
+    const initialLKM1 = {
+      hypothesis: '',
+      exp1_q1: '', exp1_q2: '', exp1_kesimpulan1: '', exp1_kesimpulan2: '',
+      exp2_tableA_1: '', exp2_tableA_2: '', exp2_q1: '',
+      exp2_tableB_1: '', exp2_tableB_2: '', exp2_q2: '',
+      analysis1: '', analysis2: '',
+      final_kesimpulan1: '', final_kesimpulan2: '', final_kesimpulan3: ''
+    };
+    const initialLKM2 = {
+      hypothesis: '',
+      exp1_q1: '', exp1_q2: '',
+      exp1_kesimpulan1_dropdown: '', exp1_kesimpulan2_dropdown: '',
+      exp1_table_atas_h: '', exp1_table_atas_v: '', exp1_table_atas_ep: '', exp1_table_atas_ek: '', exp1_table_atas_em: '',
+      exp1_table_bawah_h: '', exp1_table_bawah_v: '', exp1_table_bawah_ep: '', exp1_table_bawah_ek: '', exp1_table_bawah_em: '',
+      exp1_kesimpulan1: '', exp1_kesimpulan2: '',
+      exp2_table: [
+        { pos: 'Ujung kiri atas', ep: '', ek: '', em: '' },
+        { pos: 'Tengah saat turun', ep: '', ek: '', em: '' },
+        { pos: 'Dasar lintasan', ep: '', ek: '', em: '' },
+        { pos: 'Tengah saat naik', ep: '', ek: '', em: '' },
+        { pos: 'Ujung kanan atas', ep: '', ek: '', em: '' }
+      ],
+      exp2_q1: '', exp2_q2: '', exp2_q3: '',
+      exp2_kesimpulan1: '', exp2_kesimpulan2: '', exp2_kesimpulan3: '', exp2_kesimpulan4: '',
+      analysis1: '', analysis2: '',
+      final_kesimpulan1: '', final_kesimpulan2: '', final_kesimpulan3: ''
+    };
+
+    // --- VIRTUAL LAB USAHA ---
+    const LabUsaha = ({ onDataChange, targetDisplacement = null, initialForce = 100, mode = 'free' }) => {
+      const [force, setForce] = useState(initialForce);
+      const [surface, setSurface] = useState('kasar'); 
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [pos, setPos] = useState(0); 
+      const [vel, setVel] = useState(0);
+      const [work, setWork] = useState(0);
+      const [friction, setFriction] = useState(0);
+
+      const requestRef = useRef();
+      const lastTimeRef = useRef();
+
+      const m = 100; 
+      const g = 10;
+      const mu_s = 0.35;
+      const mu_k = 0.25;
+      const W_weight = m * g; 
+      const max_fs = mu_s * W_weight; 
+      const fk = mu_k * W_weight; 
+
+      const resetLab = useCallback(() => {
+        setIsPlaying(false);
+        setPos(0);
+        setVel(0);
+        setWork(0);
+        setFriction(0);
+        cancelAnimationFrame(requestRef.current);
+      }, []);
+
+      const updatePhysics = useCallback((time) => {
+        if (!lastTimeRef.current) lastTimeRef.current = time;
+        const dt = (time - lastTimeRef.current) / 1000; 
+        lastTimeRef.current = time;
+
+        setPos((prevPos) => {
+          setVel((prevVel) => {
+            let currentVel = prevVel;
+            let currentPos = prevPos;
+            let accel = 0;
+            let currentFriction = 0;
+
+            const isLicin = surface === 'licin';
+            const currentForce = force;
+
+            if (currentVel === 0) {
+              if (isLicin) {
+                accel = currentForce / m;
+                currentFriction = 0;
+              } else {
+                if (currentForce <= max_fs) {
+                  accel = 0;
+                  currentFriction = currentForce;
+                } else {
+                  accel = (currentForce - fk) / m;
+                  currentFriction = fk;
+                }
+              }
+            } else if (currentVel > 0) {
+              if (isLicin) {
+                accel = currentForce / m;
+                currentFriction = 0;
+              } else {
+                accel = (currentForce - fk) / m;
+                currentFriction = fk;
+              }
+            }
+
+            currentVel += accel * dt;
+            if (currentVel < 0) { currentVel = 0; currentFriction = 0; }
+
+            let nextPos = currentPos + currentVel * dt;
+
+            if (targetDisplacement !== null && nextPos >= targetDisplacement) {
+                nextPos = targetDisplacement;
+                currentVel = 0;
+                setIsPlaying(false);
+            }
+
+            setFriction(currentFriction);
+            if (nextPos > prevPos) {
+               setWork((prevWork) => prevWork + (currentForce * (nextPos - prevPos)));
+            }
+
+            return currentVel;
+          });
+          return prevPos + (vel * dt);
+        });
+
+        if (isPlaying) {
+          requestRef.current = requestAnimationFrame(updatePhysics);
+        }
+      }, [isPlaying, force, surface, targetDisplacement, max_fs, fk, m, vel]);
+
+      useEffect(() => {
+        if (isPlaying) {
+          requestRef.current = requestAnimationFrame(updatePhysics);
+        } else {
+          cancelAnimationFrame(requestRef.current);
+          lastTimeRef.current = undefined;
+        }
+        return () => cancelAnimationFrame(requestRef.current);
+      }, [isPlaying, updatePhysics]);
+
+      useEffect(() => {
+          if(mode !== 'free') {
+              setForce(initialForce);
+              resetLab();
+          }
+      }, [mode, initialForce, resetLab]);
+
+      const svgWidth = 600;
+      const svgHeight = 200;
+      const pixelsPerMeter = 50;
+      const boxWidth = 60;
+      const boxHeight = 80;
+      const boxX = 50 + pos * pixelsPerMeter;
+      const groundY = 180;
+
+      return (
+        <div className="flex flex-col gap-4 border rounded-xl p-4 bg-slate-50 print:hidden">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold text-slate-800">Area Virtual Lab: Usaha</h3>
+            <div className="text-sm bg-blue-100 px-3 py-1 rounded-full text-blue-800 font-semibold">
+              Usaha (W) = {Math.round(work)} Joule
+            </div>
+          </div>
+
+          <div className="relative w-full overflow-hidden bg-white border border-slate-300 rounded-lg shadow-inner" style={{ height: '220px' }}>
+            <svg width="100%" height="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="xMidYMid slice">
+              <g className="text-slate-300">
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(m => (
+                  <g key={m} transform={`translate(${50 + m * pixelsPerMeter}, ${groundY})`}>
+                    <line x1="0" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="2" />
+                    <text x="0" y="25" textAnchor="middle" fontSize="12" fill="#64748b">{m}m</text>
+                  </g>
+                ))}
+              </g>
+
+              <line x1="0" y1={groundY} x2={svgWidth} y2={groundY} stroke="#475569" strokeWidth="4" />
+              
+              {targetDisplacement != null && (
+                 <line x1={50 + targetDisplacement * pixelsPerMeter} y1={groundY - 100} x2={50 + targetDisplacement * pixelsPerMeter} y2={groundY} stroke="#10b981" strokeWidth="2" strokeDasharray="5,5" />
+              )}
+
+              <g transform={`translate(${boxX}, ${groundY - boxHeight})`}>
+                <rect width={boxWidth} height={boxHeight} fill="#94a3b8" stroke="#475569" strokeWidth="2" rx="4" />
+                <line x1="10" y1="20" x2="50" y2="20" stroke="#cbd5e1" strokeWidth="2" />
+                <line x1="10" y1="40" x2="50" y2="40" stroke="#cbd5e1" strokeWidth="2" />
+                
+                <g transform="translate(-30, 10)">
+                  <circle cx="15" cy="10" r="8" fill="#f59e0b" />
+                  <line x1="15" y1="18" x2="15" y2="50" stroke="#f59e0b" strokeWidth="4" />
+                  <line x1="15" y1="25" x2="35" y2="20" stroke="#f59e0b" strokeWidth="4" />
+                  <line x1="15" y1="50" x2="5" y2="70" stroke="#f59e0b" strokeWidth="4" />
+                  <line x1="15" y1="50" x2="25" y2="70" stroke="#f59e0b" strokeWidth="4" />
+                </g>
+
+                {force > 0 && (
+                  <g transform={`translate(${boxWidth / 2}, ${boxHeight / 2})`}>
+                    <line x1="0" y1="0" x2={force / 5} y2="0" stroke="#3b82f6" strokeWidth="4" markerEnd="url(#arrow-force)" />
+                    <text x={force / 10} y="-10" textAnchor="middle" fontSize="12" fill="#2563eb" fontWeight="bold">F = {force} N</text>
+                  </g>
+                )}
+
+                {friction > 0 && (
+                  <g transform={`translate(${boxWidth / 2}, ${boxHeight - 10})`}>
+                    <line x1="0" y1="0" x2={-friction / 5} y2="0" stroke="#ef4444" strokeWidth="3" markerEnd="url(#arrow-friction)" />
+                    <text x={-friction / 10} y="-10" textAnchor="middle" fontSize="10" fill="#dc2626">fg</text>
+                  </g>
+                )}
+              </g>
+
+              <defs>
+                <marker id="arrow-force" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+                </marker>
+                <marker id="arrow-friction" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
+                </marker>
+              </defs>
+            </svg>
+
+            <div className="absolute top-2 left-2 bg-white/80 p-2 rounded text-xs shadow">
+              <p>Posisi: {pos.toFixed(2)} m</p>
+              {targetDisplacement != null && <p className="text-teal-600 font-bold">Target: {targetDisplacement} m</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                 <label className="text-sm font-semibold">Gaya Dorong (N): {force}</label>
+                 {mode === 'free' && (
+                     <input 
+                       type="range" min="0" max="600" step="10" 
+                       value={force} onChange={(e) => setForce(Number(e.target.value))}
+                       disabled={isPlaying}
+                       className="w-1/2"
+                     />
+                 )}
+              </div>
+              {mode === 'free' && (
+                 <div className="flex justify-between items-center">
+                   <label className="text-sm font-semibold">Permukaan:</label>
+                   <select 
+                     value={surface} onChange={(e) => setSurface(e.target.value)}
+                     disabled={isPlaying || pos > 0}
+                     className="border rounded p-1 text-sm"
+                   >
+                     <option value="kasar">Kasar (Ada Gesekan)</option>
+                     <option value="licin">Licin (Tanpa Gesekan)</option>
+                   </select>
+                 </div>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-end gap-2">
+              <Button variant={isPlaying ? 'danger' : 'green'} onClick={() => setIsPlaying(!isPlaying)}>
+                {isPlaying ? 'Pause' : 'Play'}
+              </Button>
+              <Button variant="outline" onClick={resetLab}>Reset</Button>
+              {onDataChange && (
+                <Button variant="orange" onClick={() => onDataChange(Math.round(work))}>
+                  Catat Hasil (W)
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // --- VIRTUAL LAB ENERGI (FULL FEATURED SKATE PARK) ---
+    const LabEnergi = ({ onRecordTop, onRecordBottom, onRecordData }) => {
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [mass, setMass] = useState(50); 
+      
+      const [showGraph, setShowGraph] = useState(true);
+      const [showGrid, setShowGrid] = useState(true);
+      const [showSpeed, setShowSpeed] = useState(true);
+      const [autoPauseBottom, setAutoPauseBottom] = useState(false);
+
+      const [x, setX] = useState(5); // coordinate from -5 to 5
+      const [v, setV] = useState(0); 
+
+      const requestRef = useRef();
+      const lastTimeRef = useRef();
+      const draggingRef = useRef(false);
+
+      const g = 10;
+      const E_total = mass * g * 5; // Total energy at 5m height
+
+      const calculatePhysics = (currentX) => {
+          const h = 0.2 * currentX * currentX; // parabola h = 0.2*x^2 (max 5m at x=5)
+          let ep = mass * g * h;
+          if (ep > E_total) ep = E_total;
+          const ek = E_total - ep;
+          const speedMag = Math.sqrt(Math.max(0, (2 * ek) / mass));
+          return { h, ep, ek, speedMag, em: E_total };
+      };
+
+      const resetLab = useCallback(() => {
+        setIsPlaying(false);
+        setX(5);
+        setV(0);
+        cancelAnimationFrame(requestRef.current);
+      }, []);
+
+      const stepForward = () => {
+          setIsPlaying(false);
+          setX((prevX) => {
+              const dydx = 0.4 * prevX;
+              const accelX = - (g * dydx) / (1 + dydx * dydx);
+              let newV = v + accelX * 0.05;
+              let newX = prevX + newV * 0.05;
+              if (newX > 5) { newX = 5; newV = 0; }
+              if (newX < -5) { newX = -5; newV = 0; }
+              setV(newV);
+              return newX;
+          });
+      };
+
+      const updatePhysics = useCallback((time) => {
+        if (!lastTimeRef.current) lastTimeRef.current = time;
+        const dt = Math.min((time - lastTimeRef.current) / 1000, 0.1); 
+        lastTimeRef.current = time;
+
+        setX((prevX) => {
+            const dydx = 0.4 * prevX;
+            const accelX = - (g * dydx) / (1 + dydx * dydx);
+            let newV = v + accelX * dt;
+            let newX = prevX + newV * dt;
+
+            if (autoPauseBottom && prevX * newX <= 0 && prevX !== 0) {
+                setIsPlaying(false);
+                newX = 0; 
+                newV = -newV; 
+            }
+
+            if (newX > 5) { newX = 5; newV = 0; }
+            if (newX < -5) { newX = -5; newV = 0; }
+
+            setV(newV);
+            return newX;
+        });
+
+        if (isPlaying) {
+          requestRef.current = requestAnimationFrame(updatePhysics);
+        }
+      }, [isPlaying, v, autoPauseBottom]);
+
+      useEffect(() => {
+        if (isPlaying) {
+          requestRef.current = requestAnimationFrame(updatePhysics);
+        } else {
+          cancelAnimationFrame(requestRef.current);
+          lastTimeRef.current = undefined;
+        }
+        return () => cancelAnimationFrame(requestRef.current);
+      }, [isPlaying, updatePhysics]);
+
+      const { h, ep, ek, speedMag, em } = calculatePhysics(x);
+
+      const svgW = 500;
+      const svgH = 300;
+      const pxPerMeter = 40;
+      const originX = 250;
+      const originY = 250; 
+
+      const skaterX = originX + x * pxPerMeter;
+      const skaterY = originY - h * pxPerMeter;
+
+      let trackD = `M ${originX - 5 * pxPerMeter} ${originY - 5 * pxPerMeter} `;
+      for(let px = -5; px <= 5; px += 0.5) {
+          const py = 0.2 * px * px;
+          trackD += `L ${originX + px * pxPerMeter} ${originY - py * pxPerMeter} `;
+      }
+
+      const handleMouseDown = () => {
+          if(isPlaying) return;
+          draggingRef.current = true;
+      };
+      const handleMouseUp = () => { draggingRef.current = false; };
+      
+      const handleInteractionMove = (clientX, targetEl) => {
+          if (!draggingRef.current || isPlaying || !targetEl) return;
+          const rect = targetEl.getBoundingClientRect();
+          const mouseX = clientX - rect.left;
+          let newPhysicsX = (mouseX - originX) / pxPerMeter;
+          if(newPhysicsX > 5) newPhysicsX = 5;
+          if(newPhysicsX < -5) newPhysicsX = -5;
+          setX(newPhysicsX);
+          setV(0);
+      };
+
+      return (
+        <div className="flex flex-col lg:flex-row gap-4 border rounded-xl p-4 bg-slate-50 print:hidden">
+          <div className="flex-1 space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-slate-800">Area Virtual Lab: Energi (Skate Park U)</h3>
+              </div>
+              
+              <div 
+                className="relative w-full bg-white border border-slate-300 rounded-lg shadow-inner overflow-hidden select-none cursor-crosshair"
+                style={{ height: '320px' }}
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onMouseMove={(e) => handleInteractionMove(e.clientX, e.currentTarget)}
+                onTouchStart={(e) => {
+                     if(isPlaying) return;
+                     draggingRef.current = true;
+                     const touch = e.touches && e.touches[0];
+                     if(touch && e.cur
